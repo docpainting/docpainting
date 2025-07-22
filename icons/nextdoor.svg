@@ -1,0 +1,16 @@
+<svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="concave">
+      <feDropShadow dx="-2" dy="-2" stdDeviation="3" flood-color="#fff" flood-opacity="0.3"/>
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.6"/>
+    </filter>
+  </defs>
+  <rect x="2" y="2" width="36" height="36" rx="8" fill="#1a1a1a" filter="url(#concave)"/>
+  
+  <!-- Unified House and Chimney with Single Outline (Wider Chimney) -->
+  <path d="M10 29 V17 L11.5 16 V11 H15.5 V14.5 L20 11.5 L30 17 V29 Z" 
+        fill="#28a745" 
+        stroke="#000000" 
+        stroke-width="1.5" 
+        stroke-linejoin="round"/>
+</svg>

@@ -3,8 +3,64 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>DOC Painting | Boston & South Shore's Award-Winning Painters</title>
-  <meta name="description" content="DOC Painting - Premier painting contractor in Holbrook, MA. Serving Boston & South Shore. Award-winning craftsmanship. Free American flag with every exterior job.">
+  <title>Boston & South Shore Painters | DOC Painting | Holbrook, MA</title>
+  <meta name="description" content="DOC Painting offers premier interior and exterior painting services for homes and businesses in Boston & the South Shore. Contact our award-winning painting contractors for a free quote.">
+
+  <!-- Schema Markup for SEO -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Painter",
+    "name": "DOC Painting",
+    "description": "Family-owned, award-winning (2022-2024) painting contractor serving Boston & the South Shore. Specializing in interior/exterior painting, cabinet refinishing, and deck staining.",
+    "telephone": "+1-978-408-5183",
+    "email": "thedoc@docpainting.com",
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Holbrook",
+      "addressRegion": "MA",
+      "addressCountry": "US"
+    },
+    "areaServed": [
+      { "@type": "City", "name": "Holbrook" },
+      { "@type": "City", "name": "Weymouth" },
+      { "@type": "City", "name": "Braintree" },
+      { "@type": "City", "name": "Randolph" },
+      { "@type": "City", "name": "Avon" },
+      { "@type": "City", "name": "Abington" },
+      { "@type": "City", "name": "Westwood" },
+      { "@type": "City", "name": "Hingham" },
+      { "@type": "City", "name": "Cohasset" },
+      { "@type": "City", "name": "Duxbury" },
+      { "@type": "City", "name": "Milton" },
+      { "@type": "City", "name": "Norwell" },
+      { "@type": "City", "name": "Hanover" },
+      { "@type": "City", "name": "Canton" },
+      { "@type": "City", "name": "Sharon" },
+      { "@type": "City", "name": "Marshfield" },
+      { "@type": "City", "name": "Pembroke" },
+      { "@type": "City", "name": "Scituate" },
+      { "@type": "City", "name": "Kingston" },
+      { "@type": "City", "name": "Norwood" },
+      { "@type": "City", "name": "Dedham" },
+      { "@type": "City", "name": "Hanson" },
+      { "@type": "City", "name": "Whitman" },
+      { "@type": "City", "name": "Plymouth" },
+      { "@type": "City", "name": "Rockland" },
+      { "@type": "City", "name": "Quincy" },
+      { "@type": "City", "name": "Stoughton" },
+      { "@type": "City", "name": "Boston" },
+      { "@type": "City", "name": "Brockton" }
+    ],
+    "url": "https://docpainting.github.io/docpainting/",
+    "sameAs": [
+      "https://facebook.com/thedochimself",
+      "https://instagram.com/docpainting",
+      "https://pinterest.com/docpaintingboston",
+      "https://nextdoor.com/pages/doc-painting-holbrook-ma/"
+    ]
+  }
+  </script>
   
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
@@ -40,7 +96,51 @@
       box-shadow: 0 6px 15px rgba(232, 90, 79, 0.4);
     }
 
-    /* Parallax Sections */
+    /* Hero Video Background */
+    .hero-video-section {
+      height: 80vh;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: white;
+      text-shadow: 2px 2px 8px rgba(0,0,0,0.7);
+      background-color: #000;
+    }
+    .hero-video {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 80%;
+      height: 80%;
+      z-index: 1;
+      transform: translateX(-50%) translateY(-50%);
+      object-fit: contain;
+      border-radius: 10px;
+    }
+    .hero-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.3);
+      z-index: 2;
+    }
+    .parallax-content {
+      z-index: 3;
+      padding: 20px;
+      max-width: 900px;
+    }
+    .hero-video-section h1 {
+      font-size: 3.5rem;
+      margin-bottom: 20px;
+    }
+    .hero-video-section p {
+      font-size: 1.4rem;
+      margin-bottom: 30px;
+    }
+
+    /* Parallax Sections (for other sections) */
     .parallax {
       height: 80vh;
       overflow: hidden;
@@ -62,11 +162,6 @@
       top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(0, 0, 0, 0.5);
       z-index: 1;
-    }
-    .parallax-content {
-      z-index: 2;
-      padding: 20px;
-      max-width: 900px;
     }
     .parallax h1 {
       font-size: 3.5rem;
@@ -203,28 +298,55 @@
       margin: 20px 0;
     }
 
-    /* Gallery Placeholder */
-    .gallery {
+    /* New Interactive Gallery */
+    #gallery-filter-buttons {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .filter-btn {
+      background-color: #f0f0f0;
+      color: #333;
+      border: 1px solid #ddd;
+      padding: 10px 20px;
+      margin: 5px;
+      border-radius: 25px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 600;
+    }
+    .filter-btn:hover, .filter-btn.active {
+      background-color: #e85a4f;
+      color: #fff;
+      border-color: #e85a4f;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    .gallery-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 15px;
-      margin-top: 50px;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
     }
     .gallery-item {
-      height: 200px;
-      background: #ddd;
-      border-radius: 8px;
+      border-radius: 12px;
       overflow: hidden;
-      position: relative;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease, opacity 0.3s ease;
+      height: 250px;
     }
     .gallery-item img {
       width: 100%;
       height: 100%;
       object-fit: cover;
-      transition: transform 0.5s ease;
+      transition: transform 0.4s ease;
+    }
+    .gallery-item:hover {
+      transform: translateY(-5px);
     }
     .gallery-item:hover img {
       transform: scale(1.1);
+    }
+    .gallery-item.hide {
+      display: none;
     }
 
     /* Contact */
@@ -325,11 +447,16 @@
     </div>
   </header>
 
-  <!-- Hero Parallax -->
-  <div class="parallax" style="background-image: url('https://source.unsplash.com/random/1600x900/?painting,exterior-house')">
+  <!-- Hero Video Background -->
+  <div class="hero-video-section">
+    <video autoplay muted loop class="hero-video">
+      <source src="./videos/LOGO.mp4" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+    <div class="hero-overlay"></div>
     <div class="parallax-content">
-      <h1>Transform Your Space</h1>
-      <p>Premium Painting Services Across Boston & The South Shore</p>
+      <h1>Premier Painting for Boston & The South Shore</h1>
+      <p>Expert interior, exterior, and commercial painting services.</p>
       <a href="#contact" class="btn">Get Free Quote</a>
     </div>
   </div>
@@ -337,9 +464,9 @@
   <!-- About Section -->
   <section id="about">
     <div class="container">
-      <h2>Why Choose DOC Painting?</h2>
-      <p>Embrace the transformative process with DOC Painting, the premier painting authority serving Boston & the South Shore. Our ethos is rooted in delivering unparalleled craftsmanship and an impeccable finish for every project we undertake.</p>
-      <p>We specialize in painting services for both homes and businesses, with a distinguished forte in Airless Spraying — a technique where we've carved a niche for outstanding results.</p>
+      <h2>A Family-Owned Business Built on Trust</h2>
+      <p>As a family-owned and operated business, we treat every home like our own. Serving Boston and the South Shore, DOC Painting was built on a simple promise: to deliver exceptional quality with a personal touch that larger companies just can't match.</p>
+      <p>We're proud of our craft and our community, and our commitment to excellence has been recognized with awards for our craftsmanship for three consecutive years.</p>
     </div>
   </section>
 
@@ -348,45 +475,45 @@
     <div class="container">
       <div class="trophy"><i class="fas fa-award"></i></div>
       <h2>Award-Winning Craftsmanship</h2>
-      <p>Recognized for Excellence in 2022 & 2023</p>
+      <p>Consecutive Award-Winning Service: 2022-2024</p>
     </div>
   </div>
 
   <!-- Services -->
   <section id="services">
     <div class="container">
-      <h2>Our Services</h2>
+      <h2>Our Painting Services</h2>
       <p>From interior elegance to exterior durability, we deliver precision and beauty in every brushstroke.</p>
       <div class="services-grid">
         <div class="service-card">
           <i class="fas fa-home"></i>
-          <h3>Interior Painting</h3>
-          <p>Refresh your living spaces with flawless finishes and expert prep work.</p>
+          <h3>Interior Painter</h3>
+          <p>Our expert interior painters transform your living spaces with precision and care, from single rooms to entire homes.</p>
         </div>
         <div class="service-card">
           <i class="fas fa-building"></i>
-          <h3>Exterior Painting</h3>
-          <p>Protect and beautify your home’s exterior with weather-resistant coatings.</p>
+          <h3>Exterior Home Painter</h3>
+          <p>As your trusted exterior home painter, we boost curb appeal and protect your home from the elements with durable, high-quality paint jobs.</p>
         </div>
         <div class="service-card">
-          <i class="fas fa-cabinet"></i>
+          <i class="fas fa-store-alt"></i>
+          <h3>Commercial Painting</h3>
+          <p>We provide professional painting services for businesses, ensuring minimal disruption and a flawless finish that reflects your brand.</p>
+        </div>
+        <div class="service-card">
+          <i class="fas fa-couch"></i>
           <h3>Cabinet Refinishing</h3>
-          <p>Breathe new life into your kitchen or bathroom with custom cabinet painting.</p>
+          <p>Update your kitchen or bathroom with our expert cabinet refinishing for a modern look at a fraction of the cost.</p>
         </div>
         <div class="service-card">
-          <i class="fas fa-chair"></i>
-          <h3>Custom Finishes</h3>
-          <p>Textured walls, accent finishes, and decorative techniques to elevate your design.</p>
-        </div>
-        <div class="service-card">
-          <i class="fas fa-tree"></i>
-          <h3>Deck & Staining</h3>
-          <p>Restore your deck or fence with durable, UV-resistant stains.</p>
+          <i class="fas fa-paint-roller"></i>
+          <h3>Deck Staining</h3>
+          <p>We protect and beautify your outdoor living space with professional deck staining, cleaning, and sealing services.</p>
         </div>
         <div class="service-card">
           <i class="fas fa-spray-can"></i>
           <h3>Airless Spraying</h3>
-          <p>Smooth, even coverage with professional-grade equipment for perfect results.</p>
+          <p>Utilizing professional-grade equipment, we atomize paint into a fine mist, resulting in a flawless, factory-smooth finish on surfaces like doors, trim, and cabinets.</p>
         </div>
       </div>
     </div>
@@ -401,28 +528,69 @@
     </div>
   </div>
 
-  <!-- Gallery -->
-  <section id="gallery">
-    <div class="container">
-      <h2>Project Gallery</h2>
-      <p>See the DOC Painting difference in every detail.</p>
-      <div class="gallery">
-        <div class="gallery-item"><img src="https://source.unsplash.com/random/300x300/?house-paint-exterior" alt="Exterior Painting"></div>
-        <div class="gallery-item"><img src="https://source.unsplash.com/random/300x300/?interior-design-living-room" alt="Interior Painting"></div>
-        <div class="gallery-item"><img src="https://source.unsplash.com/random/300x300/?kitchen-cabinets-painted" alt="Cabinet Painting"></div>
-        <div class="gallery-item"><img src="https://source.unsplash.com/random/300x300/?wood-deck-stain" alt="Deck Staining"></div>
-      </div>
-    </div>
-  </section>
+    <!-- Gallery Section -->
+    <section id="gallery">
+      <div class="container">
+        <h2>Our Work</h2>
+        <div id="gallery-filter-buttons">
+          <button class="filter-btn active" onclick="filterGallery('all')">All</button>
+          <button class="filter-btn" onclick="filterGallery('exteriors')">Exteriors</button>
+          <button class="filter-btn" onclick="filterGallery('interiors')">Interiors</button>
+          <button class="filter-btn" onclick="filterGallery('cabinets')">Cabinets</button>
+          <button class="filter-btn" onclick="filterGallery('decks')">Decks</button>
+        </div>
+        <div class="gallery-grid">
+          <!-- Exteriors -->
+          <div class="gallery-item exteriors"><img src="./gallery/exteriors/AmericanFlag_exterior.jpg" alt="Exterior with American Flag"></div>
+          <div class="gallery-item exteriors"><img src="./gallery/exteriors/Every_Exterior_getsaflag.jpg" alt="Exterior with free flag offer"></div>
+          <div class="gallery-item exteriors"><img src="./gallery/exteriors/ExteriorHolbrook.jpg" alt="Exterior painting in Holbrook"></div>
+          <div class="gallery-item exteriors"><img src="./gallery/exteriors/Farmhouse_Holbrook_Finepaints_frontdoor.jpg" alt="Farmhouse front door with Fine Paints of Europe"></div>
+          <div class="gallery-item exteriors"><img src="./gallery/exteriors/Victorian_Boston_Ma.jpeg" alt="Victorian house in Boston, MA"></div>
+          <div class="gallery-item exteriors"><img src="./gallery/exteriors/exterior.jpg" alt="Exterior painting project"></div>
+          <div class="gallery-item exteriors"><img src="./gallery/exteriors/exterior_farmhouse.jpg" alt="Farmhouse exterior"></div>
+          <div class="gallery-item exteriors"><img src="./gallery/exteriors/exterior_farmhouse_front_holbrook.jpg" alt="Farmhouse front in Holbrook"></div>
+          <div class="gallery-item exteriors"><img src="./gallery/exteriors/exteriorgrey.jpg" alt="Grey exterior painting"></div>
+          <div class="gallery-item exteriors"><img src="./gallery/exteriors/finepaintsofeurope_frontdoor.jpg" alt="Front door with Fine Paints of Europe"></div>
+          <div class="gallery-item exteriors"><img src="./gallery/exteriors/garage_doors_commercial.jpg" alt="Commercial garage doors"></div>
 
-  <!-- Contact -->
+          <!-- Interiors -->
+          <div class="gallery-item interiors"><img src="./gallery/interiors/Basement_Reno_Pembroke Ma.jpg" alt="Basement renovation in Pembroke, MA"></div>
+          <div class="gallery-item interiors"><img src="./gallery/interiors/Black_office.jpg" alt="Black office interior"></div>
+          <div class="gallery-item interiors"><img src="./gallery/interiors/Boston_condo.jpg" alt="Boston condo interior"></div>
+          <div class="gallery-item interiors"><img src="./gallery/interiors/CUSTOM_BLUE.png" alt="Custom blue interior paint"></div>
+          <div class="gallery-item interiors"><img src="./gallery/interiors/FinePaintsofEurope_railing_specialty.jpg" alt="Railing with Fine Paints of Europe"></div>
+          <div class="gallery-item interiors"><img src="./gallery/interiors/Furniture (Edited).jpg" alt="Painted furniture"></div>
+          <div class="gallery-item interiors"><img src="./gallery/interiors/Greyinterior.jpg" alt="Grey interior"></div>
+          <div class="gallery-item interiors"><img src="./gallery/interiors/SWISS_COFFEE_GREATROOM.png" alt="Great room with Swiss Coffee paint"></div>
+          <div class="gallery-item interiors"><img src="./gallery/interiors/interior.jpg" alt="Interior painting project"></div>
+
+          <!-- Cabinets -->
+          <div class="gallery-item cabinets"><img src="./gallery/cabinets/Cabinets_Renner_woodcoatings.jpg" alt="Cabinets with Renner wood coatings"></div>
+          <div class="gallery-item cabinets"><img src="./gallery/cabinets/KITCHEN_AFTER.png" alt="Kitchen after refinishing"></div>
+          <div class="gallery-item cabinets"><img src="./gallery/cabinets/KITCHEN_BEFORE.png" alt="Kitchen before refinishing"></div>
+          <div class="gallery-item cabinets"><img src="./gallery/cabinets/Kitchen.jpg" alt="Kitchen cabinet painting"></div>
+          <div class="gallery-item cabinets"><img src="./gallery/cabinets/Urbane_bronze_kitchen.jpg" alt="Kitchen with Urbane Bronze paint"></div>
+          <div class="gallery-item cabinets"><img src="./gallery/cabinets/black_kitchen.jpg" alt="Black kitchen cabinets"></div>
+          <div class="gallery-item cabinets"><img src="./gallery/cabinets/kITCHEN_WEYMOUTH1.png" alt="Kitchen in Weymouth"></div>
+
+          <!-- Decks -->
+          <div class="gallery-item decks"><img src="./gallery/decks/5_colored_deck_braintree.jpg" alt="Colored deck in Braintree"></div>
+          <div class="gallery-item decks"><img src="./gallery/decks/Deck.jpg" alt="Deck staining"></div>
+          <div class="gallery-item decks"><img src="./gallery/decks/Deck_holbrook.jpg" alt="Deck in Holbrook"></div>
+          <div class="gallery-item decks"><img src="./gallery/decks/Deck_mansion_front_porch_walpole.jpg" alt="Mansion front porch in Walpole"></div>
+          <div class="gallery-item decks"><img src="./gallery/decks/deck.jpg" alt="Deck staining project"></div>
+          <div class="gallery-item decks"><img src="./gallery/decks/deck_weymouth.jpg" alt="Deck in Weymouth"></div>
+        </div>
+      </div>
+    </section>
+
   <section id="contact">
     <div class="container">
       <h2>Get Your Free Quote</h2>
       <p>Ready to transform your property? Contact DOC Painting today for a no-obligation estimate.</p>
       <div class="contact-info">
-        <p><i class="fas fa-phone"></i> (781) 123-4567</p>
-        <p><i class="fas fa-envelope"></i> info@docpainting.com</p>
+        <p><i class="fas fa-phone"></i> (978) 408-5183</p>
+        <p><i class="fas fa-envelope"></i> thedoc@docpainting.com</p>
         <p><i class="fas fa-map-marker-alt"></i> Serving Boston & The South Shore, MA</p>
       </div>
 
@@ -433,7 +601,7 @@
         </div>
         <div class="form-group">
           <label for="email">Email</label>
-          <input type="email" id="email" placeholder="Your Email" required>
+          <input type="email" id="email" placeholder="your_email" required>
         </div>
         <div class="form-group">
           <label for="phone">Phone</label>
@@ -460,5 +628,42 @@
         <a href="#contact">Contact</a>
       </div>
       <div class="social-icons">
-        <a href="#"><i class="fab fa-facebook-f"></i></a>
-        <a href="#"><
+        <a href="https://facebook.com/thedochimself" target="_blank"><img src="./icons/facebook.svg" alt="DOC Painting on Facebook"></a>
+        <a href="https://instagram.com/docpainting" target="_blank"><img src="./icons/instagram.svg" alt="DOC Painting on Instagram"></a>
+        <a href="https://pinterest.com/docpaintingboston" target="_blank"><img src="./icons/pinterest.svg" alt="DOC Painting on Pinterest"></a>
+        <a href="https://nextdoor.com/pages/doc-painting-holbrook-ma/" target="_blank"><img src="./icons/nextdoor.svg" alt="Nextdoor"></a>
+      </div>
+      <p>&copy; 2025 DOC Painting. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script>
+    function filterGallery(category) {
+      const items = document.querySelectorAll('.gallery-item');
+      const buttons = document.querySelectorAll('.filter-btn');
+
+      // Update active button
+      buttons.forEach(button => {
+        button.classList.remove('active');
+        if (button.getAttribute('onclick') === `filterGallery('${category}')`) {
+          button.classList.add('active');
+        }
+      });
+
+      // Filter items
+      items.forEach(item => {
+        item.style.display = 'none'; // Hide all items initially
+        if (category === 'all' || item.classList.contains(category)) {
+          item.style.display = 'block'; // Show matching items
+        }
+      });
+    }
+
+    // Initially show all items
+    document.addEventListener('DOMContentLoaded', () => {
+      filterGallery('all');
+    });
+  </script>
+
+</body>
+</html>
