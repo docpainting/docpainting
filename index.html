@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DOC Painting | Boston & South Shore's Award-Winning Painters</title>
+  <meta name="description" content="DOC Painting - Premier painting contractor in Holbrook, MA. Serving Boston & South Shore. Award-winning craftsmanship. Free American flag with every exterior job.">
+  
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome (for icons) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+
+  <!-- Styles -->
+  <style>
+    /* Reset & Base */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Open Sans', sans-serif; color: #333; overflow-x: hidden; line-height: 1.6; background: #fff; }
+    h1, h2, h3, h4, h5 { font-family: 'Montserrat', sans-serif; font-weight: 700; letter-spacing: -0.5px; }
+    img { max-width: 100%; height: auto; }
+    a { text-decoration: none; color: inherit; }
+    .container { width: 90%; max-width: 1200px; margin: 0 auto; padding: 0 15px; }
+    .btn {
+      display: inline-block;
+      padding: 14px 32px;
+      background: #e85a4f;
+      color: white;
+      font-weight: 600;
+      border-radius: 5px;
+      box-shadow: 0 4px 10px rgba(232, 90, 79, 0.3);
+      transition: all 0.3s ease;
+      border: none;
+      cursor: pointer;
+      font-family: 'Montserrat', sans-serif;
+    }
+    .btn:hover {
+      background: #d24a3e;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(232, 90, 79, 0.4);
+    }
+
+    /* Parallax Sections */
+    .parallax {
+      height: 80vh;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-attachment: fixed;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-size: cover;
+      text-align: center;
+      color: white;
+      text-shadow: 2px 2px 8px rgba(0,0,0,0.7);
+    }
+    .parallax::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1;
+    }
+    .parallax-content {
+      z-index: 2;
+      padding: 20px;
+      max-width: 900px;
+    }
+    .parallax h1 {
+      font-size: 3.5rem;
+      margin-bottom: 20px;
+    }
+    .parallax p {
+      font-size: 1.4rem;
+      margin-bottom: 30px;
+    }
+
+    /* Header & Navigation */
+    header {
+      position: fixed;
+      top: 0; width: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 1000;
+      padding: 15px 0;
+      transition: all 0.3s ease;
+    }
+    header.scrolled {
+      background: rgba(0, 0, 0, 0.95);
+      padding: 10px 0;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+    nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .logo {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 800;
+      font-size: 1.8rem;
+      color: white;
+    }
+    .logo span { color: #e85a4f; }
+    .nav-links {
+      display: flex;
+      list-style: none;
+    }
+    .nav-links li { margin-left: 30px; }
+    .nav-links a {
+      color: white;
+      font-weight: 600;
+      font-size: 1rem;
+      transition: color 0.3s ease;
+    }
+    .nav-links a:hover { color: #e85a4f; }
+
+    /* Section Padding */
+    section {
+      padding: 100px 0;
+      text-align: center;
+    }
+    section:nth-child(even) {
+      background: #f9f9f9;
+    }
+    section h2 {
+      font-size: 2.5rem;
+      margin-bottom: 30px;
+      color: #2c3e50;
+    }
+    section p {
+      max-width: 800px;
+      margin: 0 auto 30px;
+      font-size: 1.1rem;
+      color: #555;
+    }
+
+    /* Services */
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 30px;
+      margin-top: 50px;
+    }
+    .service-card {
+      padding: 30px;
+      border-radius: 10px;
+      background: #fff;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+      transition: all 0.3s ease;
+    }
+    .service-card:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+    }
+    .service-card i {
+      font-size: 3rem;
+      color: #e85a4f;
+      margin-bottom: 20px;
+    }
+    .service-card h3 {
+      font-size: 1.5rem;
+      margin-bottom: 15px;
+      color: #2c3e50;
+    }
+
+    /* Flag Section */
+    .flag-highlight {
+      background: #0a3161;
+      color: white;
+      padding: 60px 0;
+      text-align: center;
+      border-top: 5px solid #bf0a30;
+      border-bottom: 5px solid #00529c;
+    }
+    .flag-highlight h2 {
+      color: white;
+    }
+    .flag-highlight p {
+      color: white;
+      max-width: 900px;
+      margin: 0 auto;
+      font-size: 1.2rem;
+    }
+    .flag-icon {
+      font-size: 3rem;
+      margin: 20px 0;
+      color: #bf0a30;
+    }
+
+    /* Awards */
+    .awards {
+      background: #e85a4f;
+      color: white;
+      text-align: center;
+      padding: 70px 0;
+    }
+    .awards h2 { color: white; }
+    .awards p { color: rgba(255,255,255,0.9); }
+    .trophy {
+      font-size: 4rem;
+      margin: 20px 0;
+    }
+
+    /* Gallery Placeholder */
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 15px;
+      margin-top: 50px;
+    }
+    .gallery-item {
+      height: 200px;
+      background: #ddd;
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+    }
+    .gallery-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.5s ease;
+    }
+    .gallery-item:hover img {
+      transform: scale(1.1);
+    }
+
+    /* Contact */
+    .contact-info {
+      margin: 40px 0;
+      font-size: 1.2rem;
+      color: #e85a4f;
+      font-weight: 600;
+    }
+    .contact-form {
+      max-width: 600px;
+      margin: 40px auto 0;
+      background: #f5f5f5;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #333;
+    }
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-family: 'Open Sans', sans-serif;
+      font-size: 1rem;
+    }
+    .form-group textarea {
+      height: 120px;
+      resize: vertical;
+    }
+
+    /* Footer */
+    footer {
+      background: #1a1a1a;
+      color: #ccc;
+      text-align: center;
+      padding: 40px 0 20px;
+      font-size: 0.9rem;
+    }
+    .footer-links {
+      margin-bottom: 20px;
+    }
+    .footer-links a {
+      color: #aaa;
+      margin: 0 10px;
+      transition: color 0.3s ease;
+    }
+    .footer-links a:hover { color: white; }
+    .social-icons {
+      margin: 20px 0;
+    }
+    .social-icons a {
+      display: inline-block;
+      width: 40px;
+      height: 40px;
+      background: #333;
+      color: white;
+      border-radius: 50%;
+      line-height: 40px;
+      margin: 0 8px;
+      transition: background 0.3s ease;
+    }
+    .social-icons a:hover { background: #e85a4f; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .parallax h1 { font-size: 2.5rem; }
+      .parallax p { font-size: 1.1rem; }
+      section h2 { font-size: 2rem; }
+      .nav-links { display: none; } /* Advanced mobile menu would require JS */
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header & Navigation -->
+  <header id="header">
+    <div class="container">
+      <nav>
+        <a href="#" class="logo">DOC <span>Painting</span></a>
+        <ul class="nav-links">
+          <li><a href="#home">Home</a></li>
+          <li><a href="#services">Services</a></li>
+          <li><a href="#about">About</a></li>
+          <li><a href="#gallery">Gallery</a></li>
+          <li><a href="#contact">Contact</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero Parallax -->
+  <div class="parallax" style="background-image: url('https://source.unsplash.com/random/1600x900/?painting,exterior-house')">
+    <div class="parallax-content">
+      <h1>Transform Your Space</h1>
+      <p>Premium Painting Services Across Boston & The South Shore</p>
+      <a href="#contact" class="btn">Get Free Quote</a>
+    </div>
+  </div>
+
+  <!-- About Section -->
+  <section id="about">
+    <div class="container">
+      <h2>Why Choose DOC Painting?</h2>
+      <p>Embrace the transformative process with DOC Painting, the premier painting authority serving Boston & the South Shore. Our ethos is rooted in delivering unparalleled craftsmanship and an impeccable finish for every project we undertake.</p>
+      <p>We specialize in painting services for both homes and businesses, with a distinguished forte in Airless Spraying — a technique where we've carved a niche for outstanding results.</p>
+    </div>
+  </section>
+
+  <!-- Awards Section -->
+  <div class="awards">
+    <div class="container">
+      <div class="trophy"><i class="fas fa-award"></i></div>
+      <h2>Award-Winning Craftsmanship</h2>
+      <p>Recognized for Excellence in 2022 & 2023</p>
+    </div>
+  </div>
+
+  <!-- Services -->
+  <section id="services">
+    <div class="container">
+      <h2>Our Services</h2>
+      <p>From interior elegance to exterior durability, we deliver precision and beauty in every brushstroke.</p>
+      <div class="services-grid">
+        <div class="service-card">
+          <i class="fas fa-home"></i>
+          <h3>Interior Painting</h3>
+          <p>Refresh your living spaces with flawless finishes and expert prep work.</p>
+        </div>
+        <div class="service-card">
+          <i class="fas fa-building"></i>
+          <h3>Exterior Painting</h3>
+          <p>Protect and beautify your home’s exterior with weather-resistant coatings.</p>
+        </div>
+        <div class="service-card">
+          <i class="fas fa-cabinet"></i>
+          <h3>Cabinet Refinishing</h3>
+          <p>Breathe new life into your kitchen or bathroom with custom cabinet painting.</p>
+        </div>
+        <div class="service-card">
+          <i class="fas fa-chair"></i>
+          <h3>Custom Finishes</h3>
+          <p>Textured walls, accent finishes, and decorative techniques to elevate your design.</p>
+        </div>
+        <div class="service-card">
+          <i class="fas fa-tree"></i>
+          <h3>Deck & Staining</h3>
+          <p>Restore your deck or fence with durable, UV-resistant stains.</p>
+        </div>
+        <div class="service-card">
+          <i class="fas fa-spray-can"></i>
+          <h3>Airless Spraying</h3>
+          <p>Smooth, even coverage with professional-grade equipment for perfect results.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Veteran Appreciation Flag Section -->
+  <div class="flag-highlight">
+    <div class="container">
+      <div class="flag-icon"><i class="fas fa-flag"></i></div>
+      <h2>In Honor of Our Veterans</h2>
+      <p>Every exterior project includes a FREE American flag installation — our way of supporting and thanking our nation’s heroes.</p>
+    </div>
+  </div>
+
+  <!-- Gallery -->
+  <section id="gallery">
+    <div class="container">
+      <h2>Project Gallery</h2>
+      <p>See the DOC Painting difference in every detail.</p>
+      <div class="gallery">
+        <div class="gallery-item"><img src="https://source.unsplash.com/random/300x300/?house-paint-exterior" alt="Exterior Painting"></div>
+        <div class="gallery-item"><img src="https://source.unsplash.com/random/300x300/?interior-design-living-room" alt="Interior Painting"></div>
+        <div class="gallery-item"><img src="https://source.unsplash.com/random/300x300/?kitchen-cabinets-painted" alt="Cabinet Painting"></div>
+        <div class="gallery-item"><img src="https://source.unsplash.com/random/300x300/?wood-deck-stain" alt="Deck Staining"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact -->
+  <section id="contact">
+    <div class="container">
+      <h2>Get Your Free Quote</h2>
+      <p>Ready to transform your property? Contact DOC Painting today for a no-obligation estimate.</p>
+      <div class="contact-info">
+        <p><i class="fas fa-phone"></i> (781) 123-4567</p>
+        <p><i class="fas fa-envelope"></i> info@docpainting.com</p>
+        <p><i class="fas fa-map-marker-alt"></i> Serving Boston & The South Shore, MA</p>
+      </div>
+
+      <form class="contact-form">
+        <div class="form-group">
+          <label for="name">Name</label>
+          <input type="text" id="name" placeholder="Your Name" required>
+        </div>
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" placeholder="Your Email" required>
+        </div>
+        <div class="form-group">
+          <label for="phone">Phone</label>
+          <input type="tel" id="phone" placeholder="Your Phone">
+        </div>
+        <div class="form-group">
+          <label for="message">Message</label>
+          <textarea id="message" placeholder="Tell us about your project..."></textarea>
+        </div>
+        <button type="submit" class="btn">Send Message</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <a href="#" class="logo">DOC <span>Painting</span></a>
+      <div class="footer-links">
+        <a href="#home">Home</a>
+        <a href="#services">Services</a>
+        <a href="#about">About</a>
+        <a href="#gallery">Gallery</a>
+        <a href="#contact">Contact</a>
+      </div>
+      <div class="social-icons">
+        <a href="#"><i class="fab fa-facebook-f"></i></a>
+        <a href="#"><
