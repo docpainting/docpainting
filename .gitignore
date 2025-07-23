@@ -1,0 +1,34 @@
+# Environment variables - NEVER commit API keys!
+.env
+.env.local
+.env.production
+.env.development
+*.env
+
+# Node modules
+node_modules/
+rag-system/node_modules/
+
+# Logs
+*.log
+logs/
+
+# Database files
+*.db
+*.sqlite
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Build files
+dist/
+build/

@@ -7,6 +7,15 @@
   <meta name="description" content="DOC Painting offers expert interior painting , exterior painting, and commercial paint services in Boston, the South Shore, and Norfolk County. Specializing in historical restoration, deck refinishing, and high-end faux finishes.">
   <meta name="keywords" content="interior painting boston, exterior painting south shore, commercial painting, house painter holbrook ma, deck restoration, historical home painting, faux finishes, painting contractor norfolk county, plymouth county painter, doc painting">
 
+  <!-- Google Analytics 4 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'GA_MEASUREMENT_ID');
+  </script>
+
   <!-- Schema Markup for SEO -->
   <script type="application/ld+json">
   {
@@ -715,29 +724,49 @@
       <h2>Get a Free Painting Quote in Boston and the South Shore</h2>
       <p>Ready to transform your property? Contact DOC Painting today for a no-obligation estimate.</p>
       <div class="contact-info">
-        <p><i class="fas fa-phone"></i> (978) 408-5183</p>
+        <p><i class="fas fa-phone"></i> <a href="tel:+19784085183">(978) 408-5183</a></p>
         <p><i class="fas fa-envelope"></i> thedoc@docpainting.com</p>
         <p><i class="fas fa-map-marker-alt"></i> Serving Boston & The South Shore, MA</p>
       </div>
 
-      <form name="contact" method="POST" data-netlify="true" class="contact-form">
+      <form name="contact" method="POST" data-netlify="true" class="contact-form" onsubmit="trackFormSubmission()">
+        <input type="hidden" name="form-name" value="contact">
+        <input type="hidden" name="_to" value="thedoc@docpainting.com,doconnell797@gmail.com">
+        <input type="hidden" name="_subject" value="New Quote Request - DOC Painting">
         <div class="form-group">
-          <label for="name">Name</label>
-          <input type="text" id="name" placeholder="Your Name" required>
+          <label for="name">Full Name *</label>
+          <input type="text" id="name" name="name" placeholder="Your Full Name" required>
         </div>
         <div class="form-group">
-          <label for="email">Email</label>
-          <input type="email" id="email" placeholder="your_email" required>
+          <label for="email">Email Address *</label>
+          <input type="email" id="email" name="email" placeholder="your@email.com" required>
         </div>
         <div class="form-group">
-          <label for="phone">Phone</label>
-          <input type="tel" id="phone" placeholder="Your Phone">
+          <label for="phone">Phone Number</label>
+          <input type="tel" id="phone" name="phone" placeholder="(978) 555-0123">
         </div>
         <div class="form-group">
-          <label for="message">Message</label>
-          <textarea id="message" placeholder="Tell us about your project..."></textarea>
+          <label for="service">Service Needed</label>
+          <select id="service" name="service">
+            <option value="">Select a service...</option>
+            <option value="Interior Painting">Interior Painting</option>
+            <option value="Exterior Painting">Exterior Painting</option>
+            <option value="Commercial Painting">Commercial Painting</option>
+            <option value="Cabinet Refinishing">Cabinet Refinishing</option>
+            <option value="Deck Staining">Deck Staining</option>
+            <option value="Historical Restoration">Historical Restoration</option>
+            <option value="Other">Other</option>
+          </select>
         </div>
-        <button type="submit" class="btn">Send Message</button>
+        <div class="form-group">
+          <label for="location">Project Location</label>
+          <input type="text" id="location" name="location" placeholder="City, MA">
+        </div>
+        <div class="form-group">
+          <label for="message">Project Details</label>
+          <textarea id="message" name="message" placeholder="Tell us about your project, timeline, and any specific requirements..."></textarea>
+        </div>
+        <button type="submit" class="btn">Get Free Quote</button>
       </form>
     </div>
   </section>
@@ -788,7 +817,41 @@
     // Initially show all items
     document.addEventListener('DOMContentLoaded', () => {
       filterGallery('all');
+      
+      // Track button clicks
+      document.querySelectorAll('.btn').forEach(button => {
+        button.addEventListener('click', function() {
+          if (typeof gtag !== 'undefined') {
+            gtag('event', 'click', {
+              'event_category': 'engagement',
+              'event_label': this.textContent
+            });
+          }
+        });
+      });
+      
+      // Track phone number clicks
+      document.querySelectorAll('a[href^="tel:"]').forEach(link => {
+        link.addEventListener('click', function() {
+          if (typeof gtag !== 'undefined') {
+            gtag('event', 'phone_call', {
+              'event_category': 'contact',
+              'event_label': 'phone_click'
+            });
+          }
+        });
+      });
     });
+    
+    // Track form submission
+    function trackFormSubmission() {
+      if (typeof gtag !== 'undefined') {
+        gtag('event', 'form_submit', {
+          'event_category': 'lead_generation',
+          'event_label': 'contact_form'
+        });
+      }
+    }
   </script>
 
 </body>
