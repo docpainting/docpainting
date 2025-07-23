@@ -17,14 +17,7 @@ const nodemailer = require('nodemailer');
 const winston = require('winston');
 require('dotenv').config();
 
-// Global variables for connection reuse (Lambda optimization)
-let driver = null;
-let llm = null;
-let embeddings = null;
-let graph = null;
-let transporter = null;
-
-// Logger configuration
+// Logger setup
 const logger = winston.createLogger({
   level: 'info',
   format: winston.format.combine(
@@ -38,81 +31,28 @@ const logger = winston.createLogger({
   ]
 });
 
-// Database connection with optimized connection pooling for Lambda
-const getDriver = () => {
-  if (!driver) {
-    logger.info('Creating new Neo4j driver with connection pooling');
-    driver = neo4j.driver(
-      process.env.NEO4J_URI || 'bolt://localhost:7687',
-      neo4j.auth.basic(process.env.NEO4J_USER || 'neo4j', process.env.NEO4J_PASSWORD || 'password'),
-      {
-        maxConnectionLifetime: 3 * 60 * 60 * 1000, // 3 hours
-        maxConnectionPoolSize: 50,
-        connectionAcquisitionTimeout: 30 * 1000, // 30 seconds (Lambda timeout friendly)
-        disableLosslessIntegers: true,
-        connectionTimeout: 20 * 1000, // 20 seconds connection timeout
-        maxTransactionRetryTime: 15 * 1000, // 15 seconds retry time
-        logging: {
-          level: 'info',
-          logger: (level, message) => logger.info(`Neo4j ${level}: ${message}`)
-        }
-      }
-    );
-  }
-  return driver;
-};
+// Neo4j driver
+const driver = neo4j.driver(
+  process.env.NEO4J_URI || 'bolt://localhost:7687',
+  neo4j.auth.basic(process.env.NEO4J_USER || 'neo4j', process.env.NEO4J_PASSWORD || 'password'),
+  { maxConnectionPoolSize: 100, connectionAcquisitionTimeout: 60000 }
+);
 
 // Nodemailer transporter (for email notifications)
-const getTransporter = () => {
-  if (!transporter) {
-    transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-      port: process.env.EMAIL_PORT || 587,
-      secure: false, // Use TLS
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      }
-    });
+const transporter = nodemailer.createTransport({
+  host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+  port: process.env.EMAIL_PORT || 587,
+  secure: false, // Use TLS
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
   }
-  return transporter;
-};
+});
 
-// Initialize LangChain components (lazy initialization)
-const getLLM = () => {
-  if (!llm) {
-    llm = new ChatOpenAI({
-      openAIApiKey: process.env.OPENROUTER_API_KEY,
-      openAIApiBase: 'https://openrouter.ai/api/v1',
-      modelName: 'anthropic/claude-3-haiku:beta',
-      temperature: 0.7,
-      maxTokens: 1000
-    });
-  }
-  return llm;
-};
-
-const getEmbeddings = () => {
-  if (!embeddings) {
-    embeddings = new OpenAIEmbeddings({
-      openAIApiKey: process.env.OPENROUTER_API_KEY,
-      openAIApiBase: 'https://openrouter.ai/api/v1',
-      modelName: 'text-embedding-3-small'
-    });
-  }
-  return embeddings;
-};
-
-const getGraph = () => {
-  if (!graph) {
-    graph = new Neo4jGraph({
-      url: process.env.NEO4J_URI || 'bolt://localhost:7687',
-      username: process.env.NEO4J_USER || 'neo4j',
-      password: process.env.NEO4J_PASSWORD || 'password'
-    });
-  }
-  return graph;
-};
+// LangChain components (lazy init; no vectorStore, uses APOC for similarity)
+let llm;
+let embeddings;
+let graph;
 
 // Zod schema for LLM output validation
 const analysisSchema = z.object({
@@ -242,7 +182,7 @@ async function setupCustomerSchema() {
 
 class CustomerManager {
   constructor() {
-    this.driver = getDriver();
+    this.driver = driver;
     initLangChain().catch(err => logger.error('LangChain init error:', err));
   }
 
@@ -818,7 +758,7 @@ Respond professionally as DOC Painting. Use the knowledge base information to pr
       
       const mailOptions = {
         from: process.env.EMAIL_FROM || 'noreply@docpainting.com',
-        to: process.env.EMAIL_USER,
+        to: [process.env.EMAIL_USER, 'thedoc@docpainting.com', 'doconnell797@gmail.com'],
         subject: '🔥 High-Priority Lead Alert - Quote Request',
         html: `
           <h2>High-Priority Lead Alert</h2>

@@ -62,5 +62,16 @@ ehthumbs.db
 Thumbs.db
 
 # RAG System development files (contain hardcoded secrets for local dev)
-rag-system/
+rag-system/.env
+rag-system/.env.local
+rag-system/node_modules/
+rag-system/logs/
+rag-system/*.log
+rag-system/combined.log
+rag-system/error.log
 !rag-system/customer-manager.js
+!rag-system/package.json
+!rag-system/add-*.js
+!rag-system/setup-neo4j.js
+!rag-system/search-code-components.js
+!rag-system/populate-database.js
