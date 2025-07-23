@@ -1,3 +1,4 @@
+# DOC Painting AI Chat System Configuration
 [build]
   functions = "netlify/functions"
   publish = "/"
