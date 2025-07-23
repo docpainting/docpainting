@@ -6,7 +6,7 @@
 // Workaround for Neo4j 4.4 Community Edition: No native vector indexes; uses APOC cosineSimilarity with precomputed norms for optimized semantic searches.
 // Assumes APOC installed and configured (dbms.security.procedures.unrestricted=apoc.* in neo4j.conf).
 // Uses MERGE extensively in Cypher for idempotent operations, avoiding duplicates and handling updates gracefully.
-// Email integration: Uses Nodemailer for sending notifications on high-priority leads; configure via .env (EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS, EMAIL_FROM, APP_BASE_URL for links).
+// Email integration: Uses Nodemailer for sending notifications on high-priority leads; configure via environment variables.
 
 const neo4j = require('neo4j-driver');
 const { v4: uuidv4 } = require('uuid');
@@ -758,7 +758,7 @@ Respond professionally as DOC Painting. Use the knowledge base information to pr
       
       const mailOptions = {
         from: process.env.EMAIL_FROM || 'noreply@docpainting.com',
-        to: [process.env.EMAIL_USER, 'thedoc@docpainting.com', 'doconnell797@gmail.com'],
+        to: process.env.EMAIL_USER,
         subject: '🔥 High-Priority Lead Alert - Quote Request',
         html: `
           <h2>High-Priority Lead Alert</h2>
