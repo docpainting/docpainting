@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Boston & South Shore Painters | DOC Painting | Holbrook, MA</title>
-  <meta name="description" content="DOC Painting offers premier interior and exterior painting services for homes and businesses in Boston & the South Shore. Contact our award-winning painting contractors for a free quote.">
+  <title>DOC Painting | Premier Interior & Exterior Painting Contractor | Boston & South Shore</title>
+  <meta name="description" content="DOC Painting offers expert interior painting , exterior painting, and commercial paint services in Boston, the South Shore, and Norfolk County. Specializing in historical restoration, deck refinishing, and high-end faux finishes.">
+  <meta name="keywords" content="interior painting boston, exterior painting south shore, commercial painting, house painter holbrook ma, deck restoration, historical home painting, faux finishes, painting contractor norfolk county, plymouth county painter, doc painting">
 
   <!-- Schema Markup for SEO -->
   <script type="application/ld+json">
@@ -80,11 +81,11 @@
     .btn {
       display: inline-block;
       padding: 14px 32px;
-      background: #e85a4f;
+      background: #003366;
       color: white;
       font-weight: 600;
       border-radius: 5px;
-      box-shadow: 0 4px 10px rgba(232, 90, 79, 0.3);
+      box-shadow: 0 4px 10px rgba(0, 51, 102, 0.3);
       transition: all 0.3s ease;
       border: none;
       cursor: pointer;
@@ -197,7 +198,7 @@
       font-size: 1.8rem;
       color: white;
     }
-    .logo span { color: #e85a4f; }
+    .logo span { color: #003366; }
     .nav-links {
       display: flex;
       list-style: none;
@@ -209,7 +210,7 @@
       font-size: 1rem;
       transition: color 0.3s ease;
     }
-    .nav-links a:hover { color: #e85a4f; }
+    .nav-links a:hover { color: #003366; }
 
     /* Section Padding */
     section {
@@ -251,13 +252,17 @@
     }
     .service-card i {
       font-size: 3rem;
-      color: #e85a4f;
+      color: #003366;
       margin-bottom: 20px;
     }
     .service-card h3 {
       font-size: 1.5rem;
       margin-bottom: 15px;
       color: #2c3e50;
+    }
+    .service-card p {
+      font-size: 0.95rem;
+      color: #666;
     }
 
     /* Flag Section */
@@ -281,21 +286,56 @@
     .flag-icon {
       font-size: 3rem;
       margin: 20px 0;
-      color: #bf0a30;
+      color: #640419;
     }
 
     /* Awards */
     .awards {
-      background: #e85a4f;
+      background: #800000;
       color: white;
-      text-align: center;
-      padding: 70px 0;
+      padding: 80px 0;
     }
-    .awards h2 { color: white; }
-    .awards p { color: rgba(255,255,255,0.9); }
-    .trophy {
+    .awards .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+    }
+    .award-item {
+      text-align: center;
+      padding: 40px 20px;
+    }
+    .award-item a {
+      color: white;
+      text-decoration: none;
+      display: block;
+      transition: transform 0.3s ease;
+    }
+    .award-item a:hover {
+      transform: translateY(-5px);
+    }
+    .award-icon {
       font-size: 4rem;
-      margin: 20px 0;
+      margin-bottom: 20px;
+      color: #ffd700;
+    }
+    .award-item h2 {
+      font-size: 1.8rem;
+      margin-bottom: 10px;
+      color: white;
+    }
+    .award-item p {
+      font-size: 1.1rem;
+      color: rgba(255, 255, 255, 0.9);
+      margin: 0;
+    }
+    @media (max-width: 768px) {
+      .awards .container {
+        grid-template-columns: 1fr;
+        gap: 40px;
+      }
     }
 
     /* New Interactive Gallery */
@@ -315,9 +355,9 @@
       font-weight: 600;
     }
     .filter-btn:hover, .filter-btn.active {
-      background-color: #e85a4f;
+      background-color: #003366;
       color: #fff;
-      border-color: #e85a4f;
+      border-color: #0c3252;
       transform: translateY(-2px);
       box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
@@ -353,7 +393,7 @@
     .contact-info {
       margin: 40px 0;
       font-size: 1.2rem;
-      color: #e85a4f;
+      color: #003366;
       font-weight: 600;
     }
     .contact-form {
@@ -418,7 +458,46 @@
       margin: 0 8px;
       transition: background 0.3s ease;
     }
-    .social-icons a:hover { background: #e85a4f; }
+    .social-icons a:hover { background: #003366; }
+
+    /* About Section Enhancements */
+    .about-container {
+      max-width: 800px;
+      margin: 0 auto; /* Center the entire container */
+    }
+    .about-container h2 {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+    .about-intro {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .about-subsection {
+      margin-bottom: 30px;
+    }
+    .about-subsection h3 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .about-subsection p,
+    .about-subsection ul {
+      text-align: left;
+    }
+    .about-subsection ul {
+      list-style-position: outside;
+      padding-left: 20px;
+      margin-top: 15px;
+      margin-bottom: 15px;
+    }
+    .about-subsection li {
+      margin-bottom: 10px;
+    }
+    .about-closing {
+      text-align: center;
+      font-weight: 600;
+      margin-top: 40px;
+    }
 
     /* Responsive */
     @media (max-width: 768px) {
@@ -455,27 +534,61 @@
     </video>
     <div class="hero-overlay"></div>
     <div class="parallax-content">
-      <h1>Premier Painting for Boston & The South Shore</h1>
-      <p>Expert interior, exterior, and commercial painting services.</p>
+      <h1>Premier Painting Services for Boston & The South Shore</h1>
+      <p>Your trusted local experts for Deck Staining, Interior Painting, Exterior Painting, and Commercial Painter Services.</p>
       <a href="#contact" class="btn">Get Free Quote</a>
     </div>
   </div>
 
   <!-- About Section -->
   <section id="about">
-    <div class="container">
-      <h2>A Family-Owned Business Built on Trust</h2>
-      <p>As a family-owned and operated business, we treat every home like our own. Serving Boston and the South Shore, DOC Painting was built on a simple promise: to deliver exceptional quality with a personal touch that larger companies just can't match.</p>
-      <p>We're proud of our craft and our community, and our commitment to excellence has been recognized with awards for our craftsmanship for three consecutive years.</p>
+    <div class="container about-container">
+      <h2>Boston & South Shore's Premier Painters: Artistry, Innovation & A Family Promise</h2>
+      <p class="about-intro">Based in Holbrook, MA, DOC Painting is where master craftsmanship meets cutting-edge technology. We're a family-owned, award-winning business with a passion for transforming spaces across the Boston South Shore, Norfolk, and Plymouth County. We don't just paint walls; we bring your vision to life with color, precision, and a personal touch that only a dedicated family business can provide.</p>
+      
+      <div class="about-subsection">
+        <h3>Our Specialized Craft & Innovation</h3>
+        <p>We thrive on projects that demand creativity and expertise. Our team specializes in creating extraordinary environments using advanced techniques and pioneering technology:</p>
+        <ul>
+          <li><strong>High-End & Faux Finishes:</strong> Achieving stunning mirrored high-gloss effects with Fine Paints of Europe, elegant limewash, and custom faux finishes.</li>
+          <li><strong>Expert Deck Restoration:</strong> Professional finishing for exotic woods like Brazilian Rosewood, using premium Penofin products for lasting beauty and protection.</li>
+          <li><strong>Historical Restoration:</strong> Meticulously restoring the beauty and character of Victorian and historical homes with period-accurate detail.</li>
+          <li><strong>Custom Art & Design:</strong> From 3D motivational artwork for businesses to unique patterned decks, we create pieces that tell a story.</li>
+          <li><strong>The Future of Painting (R&D):</strong> We are pioneering the next generation of our craft by developing AI-powered drones. Our R&D initiative leverages machine learning, LLM-integrated depth cameras, and NVIDIA Jetson systems to create autonomous painting solutions that will redefine precision.</li>
+        </ul>
+        <p>We believe in bold design. In fact, clients who embrace cutting-edge color trends receive a <strong>special discount!</strong></p>
+      </div>
+
+      <div class="about-subsection">
+        <h3>Our Family Guarantee</h3>
+        <p>Our family name is on every project. We were founded on trust, and our greatest measure of success is the smile on a satisfied customer's face. We work for that picture-perfect finish, every single time.</p>
+      </div>
+
+      <p class="about-closing">Let's create something extraordinary together.</p>
     </div>
   </section>
 
   <!-- Awards Section -->
   <div class="awards">
     <div class="container">
-      <div class="trophy"><i class="fas fa-award"></i></div>
-      <h2>Award-Winning Craftsmanship</h2>
-      <p>Consecutive Award-Winning Service: 2022-2024</p>
+      <div class="award-item">
+        <a href="#about">
+          <div class="award-icon">
+            <i class="fas fa-award"></i>
+          </div>
+          <h2>Award-Winning Craftsmanship</h2>
+          <p>Recognized for Excellence: 2022, 2023 & 2024</p>
+        </a>
+      </div>
+      <div class="award-item">
+        <a href="https://nextdoor.com/pages/doc-painting-holbrook-ma/" target="_blank" rel="noopener noreferrer">
+          <div class="award-icon">
+            <i class="fab fa-nextdoor"></i>
+          </div>
+          <h2>Nextdoor Neighborhood Fave</h2>
+          <p>Voted a Community Favorite by Your Neighbors</p>
+        </a>
+      </div>
     </div>
   </div>
 
@@ -484,39 +597,52 @@
     <div class="container">
       <h2>Our Painting Services</h2>
       <p>From interior elegance to exterior durability, we deliver precision and beauty in every brushstroke.</p>
-      <div class="services-grid">
-        <div class="service-card">
-          <i class="fas fa-home"></i>
-          <h3>Interior Painter</h3>
-          <p>Our expert interior painters transform your living spaces with precision and care, from single rooms to entire homes.</p>
+      <div class="row">
+        <div class="col-md-4">
+          <div class="service-card">
+            <i class="fas fa-paint-roller"></i>
+            <h3>Interior Painting</h3>
+            <p>Flawless interior painting for walls, ceilings, and trim that breathe new life into your Boston or South Shore home.</p>
+          </div>
         </div>
-        <div class="service-card">
-          <i class="fas fa-building"></i>
-          <h3>Exterior Home Painter</h3>
-          <p>As your trusted exterior home painter, we boost curb appeal and protect your home from the elements with durable, high-quality paint jobs.</p>
+        <div class="col-md-4">
+          <div class="service-card">
+            <i class="fas fa-home"></i>
+            <h3>Exterior Painting</h3>
+            <p>Durable exterior painting with weather-resistant coatings that protect your South Shore home and boost its curb appeal.</p>
+          </div>
         </div>
-        <div class="service-card">
-          <i class="fas fa-store-alt"></i>
-          <h3>Commercial Painting</h3>
-          <p>We provide professional painting services for businesses, ensuring minimal disruption and a flawless finish that reflects your brand.</p>
-        </div>
-        <div class="service-card">
-          <i class="fas fa-couch"></i>
-          <h3>Cabinet Refinishing</h3>
-          <p>Update your kitchen or bathroom with our expert cabinet refinishing for a modern look at a fraction of the cost.</p>
-        </div>
-        <div class="service-card">
-          <i class="fas fa-paint-roller"></i>
-          <h3>Deck Staining</h3>
-          <p>We protect and beautify your outdoor living space with professional deck staining, cleaning, and sealing services.</p>
-        </div>
-        <div class="service-card">
-          <i class="fas fa-spray-can"></i>
-          <h3>Airless Spraying</h3>
-          <p>Utilizing professional-grade equipment, we atomize paint into a fine mist, resulting in a flawless, factory-smooth finish on surfaces like doors, trim, and cabinets.</p>
+        <div class="col-md-4">
+          <div class="service-card">
+            <i class="fas fa-hammer"></i>
+            <h3>Expert Deck Restoration</h3>
+            <p>Professional finishing for exotic woods like Brazilian Rosewood, using premium Penofin products for lasting beauty.</p>
+          </div>
         </div>
       </div>
-    </div>
+      <div class="row mt-4">
+        <div class="col-md-4">
+          <div class="service-card">
+            <i class="fas fa-landmark"></i>
+            <h3>Historical Restoration</h3>
+            <p>Meticulously restoring the beauty and character of Victorian and historical homes with period-accurate detail.</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="service-card">
+            <i class="fas fa-palette"></i>
+            <h3>High-End & Faux Finishes</h3>
+            <p>Achieve stunning, mirrored high-gloss effects with Fine Paints of Europe, elegant limewash, and other custom finishes.</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="service-card">
+            <i class="fas fa-drafting-compass"></i>
+            <h3>Custom Art & Design</h3>
+            <p>From 3D motivational artwork for businesses to unique patterned decks, we create functional art that tells a story.</p>
+          </div>
+        </div>
+      </div>
   </section>
 
   <!-- Veteran Appreciation Flag Section -->
@@ -524,7 +650,7 @@
     <div class="container">
       <div class="flag-icon"><i class="fas fa-flag"></i></div>
       <h2>In Honor of Our Veterans</h2>
-      <p>Every exterior project includes a FREE American flag installation — our way of supporting and thanking our nation’s heroes.</p>
+      <p>Every exterior project includes a FREE American flag installation — our way of supporting and thanking our nation’s heroes with donation to the wounded warriors project.</p>
     </div>
   </div>
 
@@ -541,52 +667,52 @@
         </div>
         <div class="gallery-grid">
           <!-- Exteriors -->
-          <div class="gallery-item exteriors"><img src="./gallery/exteriors/AmericanFlag_exterior.jpg" alt="Exterior with American Flag"></div>
-          <div class="gallery-item exteriors"><img src="./gallery/exteriors/Every_Exterior_getsaflag.jpg" alt="Exterior with free flag offer"></div>
-          <div class="gallery-item exteriors"><img src="./gallery/exteriors/ExteriorHolbrook.jpg" alt="Exterior painting in Holbrook"></div>
-          <div class="gallery-item exteriors"><img src="./gallery/exteriors/Farmhouse_Holbrook_Finepaints_frontdoor.jpg" alt="Farmhouse front door with Fine Paints of Europe"></div>
-          <div class="gallery-item exteriors"><img src="./gallery/exteriors/Victorian_Boston_Ma.jpeg" alt="Victorian house in Boston, MA"></div>
-          <div class="gallery-item exteriors"><img src="./gallery/exteriors/exterior.jpg" alt="Exterior painting project"></div>
-          <div class="gallery-item exteriors"><img src="./gallery/exteriors/exterior_farmhouse.jpg" alt="Farmhouse exterior"></div>
-          <div class="gallery-item exteriors"><img src="./gallery/exteriors/exterior_farmhouse_front_holbrook.jpg" alt="Farmhouse front in Holbrook"></div>
-          <div class="gallery-item exteriors"><img src="./gallery/exteriors/exteriorgrey.jpg" alt="Grey exterior painting"></div>
-          <div class="gallery-item exteriors"><img src="./gallery/exteriors/finepaintsofeurope_frontdoor.jpg" alt="Front door with Fine Paints of Europe"></div>
-          <div class="gallery-item exteriors"><img src="./gallery/exteriors/garage_doors_commercial.jpg" alt="Commercial garage doors"></div>
+          <div class="gallery-item exteriors"><img src="./gallery/exteriors/AmericanFlag_exterior.jpg" alt="Professionally painted home exterior in Holbrook, MA with an American Flag"></div>
+          <div class="gallery-item exteriors"><img src="./gallery/exteriors/Every_Exterior_getsaflag.jpg" alt="DOC Painting exterior project in the Boston area, showcasing our free flag offer"></div>
+          <div class="gallery-item exteriors"><img src="./gallery/exteriors/ExteriorHolbrook.jpg" alt="Expert exterior house painting in Holbrook, MA by DOC Painting"></div>
+          <div class="gallery-item exteriors"><img src="./gallery/exteriors/Farmhouse_Holbrook_Finepaints_frontdoor.jpg" alt="Holbrook farmhouse front door with a high-gloss finish using Fine Paints of Europe"></div>
+          <div class="gallery-item exteriors"><img src="./gallery/exteriors/Victorian_Boston_Ma.jpeg" alt="Historical Victorian home restoration painting in Boston, MA"></div>
+          <div class="gallery-item exteriors"><img src="./gallery/exteriors/exterior.jpg" alt="Clean and durable exterior painting project on a South Shore home"></div>
+          <div class="gallery-item exteriors"><img src="./gallery/exteriors/exterior_farmhouse.jpg" alt="Complete exterior repaint of a classic farmhouse by DOC Painting"></div>
+          <div class="gallery-item exteriors"><img src="./gallery/exteriors/exterior_farmhouse_front_holbrook.jpg" alt="Front view of a beautifully painted farmhouse exterior in Holbrook, MA"></div>
+          <div class="gallery-item exteriors"><img src="./gallery/exteriors/exteriorgrey.jpg" alt="Modern grey exterior paint job on a residential home in the Boston area"></div>
+          <div class="gallery-item exteriors"><img src="./gallery/exteriors/finepaintsofeurope_frontdoor.jpg" alt="High-gloss front door finish using premium Fine Paints of Europe"></div>
+          <div class="gallery-item exteriors"><img src="./gallery/exteriors/garage_doors_commercial.jpg" alt="Durable commercial painting for garage doors in Norfolk County"></div>
 
           <!-- Interiors -->
-          <div class="gallery-item interiors"><img src="./gallery/interiors/Basement_Reno_Pembroke Ma.jpg" alt="Basement renovation in Pembroke, MA"></div>
-          <div class="gallery-item interiors"><img src="./gallery/interiors/Black_office.jpg" alt="Black office interior"></div>
-          <div class="gallery-item interiors"><img src="./gallery/interiors/Boston_condo.jpg" alt="Boston condo interior"></div>
-          <div class="gallery-item interiors"><img src="./gallery/interiors/CUSTOM_BLUE.png" alt="Custom blue interior paint"></div>
-          <div class="gallery-item interiors"><img src="./gallery/interiors/FinePaintsofEurope_railing_specialty.jpg" alt="Railing with Fine Paints of Europe"></div>
-          <div class="gallery-item interiors"><img src="./gallery/interiors/Furniture (Edited).jpg" alt="Painted furniture"></div>
-          <div class="gallery-item interiors"><img src="./gallery/interiors/Greyinterior.jpg" alt="Grey interior"></div>
-          <div class="gallery-item interiors"><img src="./gallery/interiors/SWISS_COFFEE_GREATROOM.png" alt="Great room with Swiss Coffee paint"></div>
-          <div class="gallery-item interiors"><img src="./gallery/interiors/interior.jpg" alt="Interior painting project"></div>
+          <div class="gallery-item interiors"><img src="./gallery/interiors/Basement_Reno_Pembroke Ma.jpg" alt="Interior painting for a basement renovation in Pembroke, MA"></div>
+          <div class="gallery-item interiors"><img src="./gallery/interiors/Black_office.jpg" alt="Bold black accent wall in a modern office interior, painted by DOC Painting"></div>
+          <div class="gallery-item interiors"><img src="./gallery/interiors/Boston_condo.jpg" alt="Professional interior painting for a luxury Boston condo"></div>
+          <div class="gallery-item interiors"><img src="./gallery/interiors/CUSTOM_BLUE.png" alt="Custom blue paint color for a vibrant interior living space"></div>
+          <div class="gallery-item interiors"><img src="./gallery/interiors/FinePaintsofEurope_railing_specialty.jpg" alt="Specialty high-gloss finish on an interior railing with Fine Paints of Europe"></div>
+          <div class="gallery-item interiors"><img src="./gallery/interiors/Furniture (Edited).jpg" alt="Custom furniture painting and refinishing service"></div>
+          <div class="gallery-item interiors"><img src="./gallery/interiors/Greyinterior.jpg" alt="Elegant grey interior walls painted in a South Shore home"></div>
+          <div class="gallery-item interiors"><img src="./gallery/interiors/SWISS_COFFEE_GREATROOM.png" alt="Spacious great room painted with Benjamin Moore Swiss Coffee"></div>
+          <div class="gallery-item interiors"><img src="./gallery/interiors/interior.jpg" alt="Clean lines and flawless finish on an interior painting project"></div>
 
           <!-- Cabinets -->
-          <div class="gallery-item cabinets"><img src="./gallery/cabinets/Cabinets_Renner_woodcoatings.jpg" alt="Cabinets with Renner wood coatings"></div>
-          <div class="gallery-item cabinets"><img src="./gallery/cabinets/KITCHEN_AFTER.png" alt="Kitchen after refinishing"></div>
-          <div class="gallery-item cabinets"><img src="./gallery/cabinets/KITCHEN_BEFORE.png" alt="Kitchen before refinishing"></div>
-          <div class="gallery-item cabinets"><img src="./gallery/cabinets/Kitchen.jpg" alt="Kitchen cabinet painting"></div>
-          <div class="gallery-item cabinets"><img src="./gallery/cabinets/Urbane_bronze_kitchen.jpg" alt="Kitchen with Urbane Bronze paint"></div>
-          <div class="gallery-item cabinets"><img src="./gallery/cabinets/black_kitchen.jpg" alt="Black kitchen cabinets"></div>
-          <div class="gallery-item cabinets"><img src="./gallery/cabinets/kITCHEN_WEYMOUTH1.png" alt="Kitchen in Weymouth"></div>
+          <div class="gallery-item cabinets"><img src="./gallery/cabinets/Cabinets_Renner_woodcoatings.jpg" alt="Kitchen cabinet refinishing using premium Renner wood coatings"></div>
+          <div class="gallery-item cabinets"><img src="./gallery/cabinets/KITCHEN_AFTER.png" alt="Beautifully refinished kitchen cabinets after painting by DOC Painting"></div>
+          <div class="gallery-item cabinets"><img src="./gallery/cabinets/KITCHEN_BEFORE.png" alt="Kitchen cabinets before professional refinishing and painting"></div>
+          <div class="gallery-item cabinets"><img src="./gallery/cabinets/Kitchen.jpg" alt="Professional kitchen cabinet painting service in the Boston area"></div>
+          <div class="gallery-item cabinets"><img src="./gallery/cabinets/Urbane_bronze_kitchen.jpg" alt="Stylish kitchen cabinets painted with Sherwin-Williams Urbane Bronze"></div>
+          <div class="gallery-item cabinets"><img src="./gallery/cabinets/black_kitchen.jpg" alt="Modern black kitchen cabinet painting for a sleek look"></div>
+          <div class="gallery-item cabinets"><img src="./gallery/cabinets/kITCHEN_WEYMOUTH1.png" alt="Complete kitchen cabinet refinishing project in Weymouth, MA"></div>
 
           <!-- Decks -->
-          <div class="gallery-item decks"><img src="./gallery/decks/5_colored_deck_braintree.jpg" alt="Colored deck in Braintree"></div>
-          <div class="gallery-item decks"><img src="./gallery/decks/Deck.jpg" alt="Deck staining"></div>
-          <div class="gallery-item decks"><img src="./gallery/decks/Deck_holbrook.jpg" alt="Deck in Holbrook"></div>
-          <div class="gallery-item decks"><img src="./gallery/decks/Deck_mansion_front_porch_walpole.jpg" alt="Mansion front porch in Walpole"></div>
-          <div class="gallery-item decks"><img src="./gallery/decks/deck.jpg" alt="Deck staining project"></div>
-          <div class="gallery-item decks"><img src="./gallery/decks/deck_weymouth.jpg" alt="Deck in Weymouth"></div>
+          <div class="gallery-item decks"><img src="./gallery/decks/5_colored_deck_braintree.jpg" alt="Custom 5-color deck staining project in Braintree, MA"></div>
+          <div class="gallery-item decks"><img src="./gallery/decks/Deck.jpg" alt="Professional deck staining and restoration service"></div>
+          <div class="gallery-item decks"><img src="./gallery/decks/Deck_holbrook.jpg" alt="Deck restoration and staining project in Holbrook, MA"></div>
+          <div class="gallery-item decks"><img src="./gallery/decks/Deck_mansion_front_porch_walpole.jpg" alt="Expert staining for a large front porch on a Walpole mansion"></div>
+          <div class="gallery-item decks"><img src="./gallery/decks/deck.jpg" alt="Durable deck staining project ensuring long-lasting protection"></div>
+          <div class="gallery-item decks"><img src="./gallery/decks/deck_weymouth.jpg" alt="Deck refinishing and staining in Weymouth, MA"></div>
         </div>
       </div>
     </section>
 
   <section id="contact">
     <div class="container">
-      <h2>Get Your Free Quote</h2>
+      <h2>Get a Free Painting Quote in Boston and the South Shore</h2>
       <p>Ready to transform your property? Contact DOC Painting today for a no-obligation estimate.</p>
       <div class="contact-info">
         <p><i class="fas fa-phone"></i> (978) 408-5183</p>
@@ -631,7 +757,7 @@
         <a href="https://facebook.com/thedochimself" target="_blank"><img src="./icons/facebook.svg" alt="DOC Painting on Facebook"></a>
         <a href="https://instagram.com/docpainting" target="_blank"><img src="./icons/instagram.svg" alt="DOC Painting on Instagram"></a>
         <a href="https://pinterest.com/docpaintingboston" target="_blank"><img src="./icons/pinterest.svg" alt="DOC Painting on Pinterest"></a>
-        <a href="https://nextdoor.com/pages/doc-painting-holbrook-ma/" target="_blank"><img src="./icons/nextdoor.svg" alt="Nextdoor"></a>
+        <a href="https://nextdoor.com/pages/doc-painting-holbrook-ma/" target="_blank"><img src="./icons/nextdoor.svg" alt="DOC Painting on Nextdoor"></a>
       </div>
       <p>&copy; 2025 DOC Painting. All rights reserved.</p>
     </div>
