@@ -1,34 +1,66 @@
-# Environment variables - NEVER commit API keys!
+# Environment variables
 .env
 .env.local
 .env.production
-.env.development
-*.env
+.env.staging
 
 # Node modules
 node_modules/
-rag-system/node_modules/
 
 # Logs
+logs
 *.log
-logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Database files
-*.db
-*.sqlite
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
 
-# OS files
-.DS_Store
-Thumbs.db
+# Coverage directory used by tools like istanbul
+coverage/
+
+# nyc test coverage
+.nyc_output
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
 
 # IDE files
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
 
-# Temporary files
-*.tmp
-*.temp
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
-# Build files
-dist/
-build/
+# RAG System development files (contain hardcoded secrets for local dev)
+rag-system/
+!rag-system/customer-manager.js

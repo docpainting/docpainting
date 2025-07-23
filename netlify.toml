@@ -2,6 +2,7 @@
 [build]
   functions = "netlify/functions"
   publish = "/"
+  environment = { SECRETS_SCAN_OMIT_PATHS = "rag-system/" }
   
 [build.environment]
   NODE_VERSION = "22"
