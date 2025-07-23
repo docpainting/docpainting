@@ -2,7 +2,7 @@
 // Netlify Function wrapper for DOC Painting RAG system
 // Handles customer chat requests via serverless function
 
-const { CustomerManager } = require('../../rag-system/customer-manager');
+const { CustomerManager } = require('./customer-manager');
 
 // Initialize customer manager
 let customerManager;
