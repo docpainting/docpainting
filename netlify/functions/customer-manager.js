@@ -541,7 +541,7 @@ class CustomerManager {
         const colorResult = await session.run(`
           MATCH (c:Color)
           WHERE c.embedding IS NOT NULL
-          WITH c, apoc.algo.cosineSimilarity($queryEmbedding, c.embedding) AS similarity
+          WITH c, reduce(dot = 0.0, i IN range(0, size($queryEmbedding)-1) | dot + ($queryEmbedding[i] * c.embedding[i])) AS similarity
           WHERE similarity > 0.7
           RETURN 'Color' as nodeType, labels(c) as nodeLabels, c as node, similarity
           ORDER BY similarity DESC
@@ -552,7 +552,7 @@ class CustomerManager {
         const codeResult = await session.run(`
           MATCH (c:CodeComponent)
           WHERE c.embedding IS NOT NULL
-          WITH c, apoc.algo.cosineSimilarity($queryEmbedding, c.embedding) AS similarity
+          WITH c, reduce(dot = 0.0, i IN range(0, size($queryEmbedding)-1) | dot + ($queryEmbedding[i] * c.embedding[i])) AS similarity
           WHERE similarity > 0.7
           RETURN 'CodeComponent' as nodeType, labels(c) as nodeLabels, c as node, similarity
           ORDER BY similarity DESC
