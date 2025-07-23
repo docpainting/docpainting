@@ -1,11 +1,11 @@
 # DOC Painting AI Chat System Configuration
 [build]
   functions = "netlify/functions"
-  publish = "/"
-  environment = { SECRETS_SCAN_OMIT_PATHS = "rag-system/" }
+  publish = "."
   
 [build.environment]
   NODE_VERSION = "22"
+  SECRETS_SCAN_OMIT_PATHS = "rag-system/"
   
 [functions]
   node_bundler = "esbuild"
