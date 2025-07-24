@@ -15,7 +15,10 @@ const { Neo4jGraph } = require('@langchain/community/graphs/neo4j_graph');
 const { z } = require('zod');
 const nodemailer = require('nodemailer');
 const winston = require('winston');
-require('dotenv').config();
+// Only load dotenv in local development (not in Netlify Functions)
+if (process.env.NODE_ENV !== 'production' && !process.env.AWS_LAMBDA_FUNCTION_NAME) {
+  require('dotenv').config();
+}
 
 // Logger setup
 const logger = winston.createLogger({
