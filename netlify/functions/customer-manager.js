@@ -4,7 +4,7 @@
 // Enhanced with: Lead scoring based on intents (e.g., priority for quote_requests), precomputed norms for faster APOC cosine similarity, expanded analytics (top services/priorities), Nodemailer integration for high-priority lead emails with customer info link.
 // Updated for OpenRouter integration: Uses OpenRouter API for LLM with Qwen model and custom fallback embeddings.
 // Workaround for Neo4j 4.4 Community Edition: No native vector indexes; uses APOC cosineSimilarity with precomputed norms for optimized semantic searches.
-// Assumes APOC installed and configured (dbms.security.procedures.unrestricted=apoc.* in neo4j.conf).
+// Uses standard Cypher queries - no APOC dependencies required
 // Uses MERGE extensively in Cypher for idempotent operations, avoiding duplicates and handling updates gracefully.
 // Email integration: Uses Nodemailer for sending notifications on high-priority leads; configure via environment variables.
 
