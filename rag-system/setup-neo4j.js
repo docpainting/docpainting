@@ -2,10 +2,10 @@ const neo4j = require('neo4j-driver');
 require('dotenv').config();
 
 const driver = neo4j.driver(
-  process.env.NEO4J_URI || 'bolt://localhost:7687',
+  process.env.NEO4J_URI || 'neo4j+s://c148cb1a.databases.neo4j.io',
   neo4j.auth.basic(
-    process.env.NEO4J_USER || 'neo4j',
-    process.env.NEO4J_PASSWORD || 'password'
+    process.env.NEO4J_USER || 'doconnell797@gmail.com',
+    process.env.NEO4J_PASSWORD || 'jBgAtldPuNYSLzZ7RquO8gvaqB9xpLPItpbLVOsXgwI'
   )
 );
 

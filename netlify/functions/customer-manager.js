@@ -43,8 +43,8 @@ const getDriver = () => {
   if (!driver) {
     logger.info('Creating new Neo4j driver with connection pooling');
     driver = neo4j.driver(
-      process.env.NEO4J_URI || 'bolt://localhost:7687',
-      neo4j.auth.basic(process.env.NEO4J_USER || 'neo4j', process.env.NEO4J_PASSWORD || 'password'),
+      process.env.NEO4J_URI || 'neo4j+s://c148cb1a.databases.neo4j.io',
+      neo4j.auth.basic(process.env.NEO4J_USER || 'doconnell797@gmail.com', process.env.NEO4J_PASSWORD || 'jBgAtldPuNYSLzZ7RquO8gvaqB9xpLPItpbLVOsXgwI'),
       {
         maxConnectionLifetime: 3 * 60 * 60 * 1000, // 3 hours
         maxConnectionPoolSize: 50,
@@ -82,11 +82,15 @@ const getTransporter = () => {
 const getLLM = () => {
   if (!llm) {
     llm = new ChatOpenAI({
-      openAIApiKey: process.env.OPENROUTER_API_KEY,
-      openAIApiBase: 'https://openrouter.ai/api/v1',
-      modelName: 'anthropic/claude-3-haiku:beta',
-      temperature: 0.7,
-      maxTokens: 1000
+      model: 'qwen/qwen3-235b-a22b-07-25:free',
+      apiKey: process.env.OPENROUTER_API_KEY,
+      configuration: {
+        baseURL: 'https://openrouter.ai/api/v1',
+        defaultHeaders: {
+          'HTTP-Referer': 'https://docpainting.netlify.app',
+          'X-Title': 'DOC Painting Customer Service Agent'
+        }
+      }
     });
   }
   return llm;
@@ -106,9 +110,9 @@ const getEmbeddings = () => {
 const getGraph = () => {
   if (!graph) {
     graph = new Neo4jGraph({
-      url: process.env.NEO4J_URI || 'bolt://localhost:7687',
-      username: process.env.NEO4J_USER || 'neo4j',
-      password: process.env.NEO4J_PASSWORD || 'password'
+      url: process.env.NEO4J_URI || 'neo4j+s://c148cb1a.databases.neo4j.io',
+      username: process.env.NEO4J_USER || 'doconnell797@gmail.com',
+      password: process.env.NEO4J_PASSWORD || 'jBgAtldPuNYSLzZ7RquO8gvaqB9xpLPItpbLVOsXgwI'
     });
   }
   return graph;
@@ -145,7 +149,7 @@ async function initLangChain() {
   if (!llm) {
     llm = new ChatOpenAI({
       model: 'qwen/qwen3-235b-a22b-07-25:free',
-      openAIApiKey: apiKey,
+      apiKey: apiKey,
       configuration: {
         baseURL: 'https://openrouter.ai/api/v1',
         defaultHeaders: {
@@ -698,8 +702,8 @@ Company specialties:
 - Interior & Exterior Painting
 - Historical Restoration (Victorian homes)
 - High-end Faux Finishes with Fine Paints of Europe
-- Deck Restoration with Brazilian Rosewood & Penofin
-- Cabinet Refinishing
+- Deck Restoration using Superdeck & Penofin
+- Cabinet Refinishing using Renner wood coatings & 2K-Polyurethane
 - Commercial Painting
 
 Contact: (978) 408-5183 or thedoc@docpainting.com
