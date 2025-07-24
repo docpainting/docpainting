@@ -128,13 +128,15 @@ async function initLangChain() {
     };
     logger.info('✅ Using optimized embeddings (512 dimensions, Neo4j compatible)');
   }
-  if (!graph) {
-    graph = await Neo4jGraph.initialize({
-      url: process.env.NEO4J_URI,
-      username: process.env.NEO4J_USER,
-      password: process.env.NEO4J_PASSWORD,
-    });
-  }
+  // Disabled: LangChain Neo4jGraph has issues with apoc.meta.data() on some schemas
+  // We use direct Neo4j driver queries instead
+  // if (!graph) {
+  //   graph = await Neo4jGraph.initialize({
+  //     url: process.env.NEO4J_URI,
+  //     username: process.env.NEO4J_USER,
+  //     password: process.env.NEO4J_PASSWORD,
+  //   });
+  // }
 }
 
 // Schema setup with transactions
