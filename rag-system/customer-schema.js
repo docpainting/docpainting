@@ -52,7 +52,7 @@ async function initLangChain() {
 
   if (!llm) {
     llm = new ChatOpenAI({
-      model: 'meta-llama/llama-3.2-3b-instruct:free', // Free model for DOC Painting
+      model: 'qwen/qwen3-235b-a22b-07-25:free', // Correct working model
       configuration: openRouterConfig
     });
   }
