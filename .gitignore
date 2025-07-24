@@ -70,6 +70,7 @@ rag-system/*.log
 rag-system/combined.log
 rag-system/error.log
 !rag-system/customer-manager.js
+!rag-system/customer-schema.js
 !rag-system/package.json
 !rag-system/add-*.js
 !rag-system/setup-neo4j.js
