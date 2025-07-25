@@ -572,44 +572,18 @@ class CustomerManager {
         
         // Search for Marianne Abrams professional data
         const marianneResult = await session.run(`
-          MATCH (p:Person {name: 'Marianne Abrams'})
+          MATCH (p:Person {name: 'Marianne Abrams'})-[r]->(related)
           WHERE toLower($query) CONTAINS 'marianne' OR toLower($query) CONTAINS 'abrams' OR
                 toLower($query) CONTAINS 'school' OR toLower($query) CONTAINS 'college' OR
                 toLower($query) CONTAINS 'education' OR toLower($query) CONTAINS 'work' OR
                 toLower($query) CONTAINS 'job' OR toLower($query) CONTAINS 'experience' OR
                 toLower($query) CONTAINS 'skill' OR toLower($query) CONTAINS 'resume'
-          WITH p
-          CALL {
-            WITH p
-            MATCH (p)-[:WORKED_AT]->(j:Job)
-            RETURN 'Job' as type, j as content
-            UNION ALL
-            WITH p
-            MATCH (p)-[:STUDIED_AT]->(e:Education)
-            RETURN 'Education' as type, e as content
-            UNION ALL
-            WITH p
-            MATCH (p)-[:HAS_SKILL]->(s:Skill)
-            RETURN 'Skill' as type, s as content
-            UNION ALL
-            WITH p
-            MATCH (p)-[:HAS_PROFICIENCY]->(sp:SkillProficiency)
-            RETURN 'SkillProficiency' as type, sp as content
-            UNION ALL
-            WITH p
-            MATCH (p)-[:ACHIEVED]->(a:Achievement)
-            RETURN 'Achievement' as type, a as content
-            UNION ALL
-            WITH p
-            MATCH (p)-[:HAS_EXAMPLE]->(be:BehavioralExample)
-            RETURN 'BehavioralExample' as type, be as content
-            UNION ALL
-            WITH p
-            MATCH (p)-[:HAS_OBJECTIVES]->(co:CareerObjectives)
-            RETURN 'CareerObjectives' as type, co as content
-          }
-          RETURN DISTINCT type, content
-          LIMIT 100
+          RETURN 
+            labels(related)[0] as nodeType,
+            labels(related) as nodeLabels,
+            related as node,
+            0.9 as similarity
+          LIMIT 50
         `, { query });
         
         // Fallback: If no semantic matches, use keyword search
@@ -637,23 +611,10 @@ class CustomerManager {
         const allRecords = [...colorResult.records, ...codeResult.records, ...marianneResult.records, ...fallbackResults];
         
         const foundData = allRecords.map(record => {
-          // Handle different result formats
-          let nodeType, labels, node, similarity;
-          
-          if (record.has('nodeType')) {
-            // Old format from color/code queries
-            nodeType = record.get('nodeType');
-            labels = record.get('nodeLabels');
-            node = record.get('node').properties;
-            similarity = record.get('similarity');
-          } else {
-            // New format from Marianne query
-            nodeType = record.get('type');
-            labels = [nodeType];
-            node = record.get('content').properties;
-            similarity = 0.9; // High similarity for keyword matches
-          }
-          
+          const nodeType = record.get('nodeType');
+          const labels = record.get('nodeLabels');
+          const node = record.get('node').properties;
+          const similarity = record.get('similarity');
           return {
             type: nodeType,
             labels: labels,
