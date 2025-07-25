@@ -570,9 +570,59 @@ class CustomerManager {
           LIMIT 5
         `, { queryEmbedding });
         
+        // Search for Marianne Abrams professional data
+        const marianneResults = await session.run(`
+          MATCH (p:Person {name: 'Marianne Abrams'})
+          OPTIONAL MATCH (p)-[:WORKED_AT]->(j:Job)
+          OPTIONAL MATCH (p)-[:STUDIED_AT]->(e:Education)
+          OPTIONAL MATCH (p)-[:HAS_SKILL]->(s:Skill)
+          OPTIONAL MATCH (p)-[:HAS_PROFICIENCY]->(sp:SkillProficiency)
+          OPTIONAL MATCH (p)-[:ACHIEVED]->(a:Achievement)
+          OPTIONAL MATCH (p)-[:HAS_EXAMPLE]->(be:BehavioralExample)
+          OPTIONAL MATCH (p)-[:HAS_OBJECTIVES]->(co:CareerObjectives)
+          WHERE toLower($query) CONTAINS 'marianne' OR toLower($query) CONTAINS 'abrams' OR
+                toLower($query) CONTAINS 'school' OR toLower($query) CONTAINS 'college' OR
+                toLower($query) CONTAINS 'education' OR toLower($query) CONTAINS 'work' OR
+                toLower($query) CONTAINS 'job' OR toLower($query) CONTAINS 'experience' OR
+                toLower($query) CONTAINS 'skill' OR toLower($query) CONTAINS 'resume'
+          RETURN 
+            CASE 
+              WHEN j IS NOT NULL THEN 'Job'
+              WHEN e IS NOT NULL THEN 'Education'
+              WHEN s IS NOT NULL THEN 'Skill'
+              WHEN sp IS NOT NULL THEN 'SkillProficiency'
+              WHEN a IS NOT NULL THEN 'Achievement'
+              WHEN be IS NOT NULL THEN 'BehavioralExample'
+              WHEN co IS NOT NULL THEN 'CareerObjectives'
+              ELSE 'Person'
+            END as nodeType,
+            CASE 
+              WHEN j IS NOT NULL THEN labels(j)
+              WHEN e IS NOT NULL THEN labels(e)
+              WHEN s IS NOT NULL THEN labels(s)
+              WHEN sp IS NOT NULL THEN labels(sp)
+              WHEN a IS NOT NULL THEN labels(a)
+              WHEN be IS NOT NULL THEN labels(be)
+              WHEN co IS NOT NULL THEN labels(co)
+              ELSE labels(p)
+            END as nodeLabels,
+            CASE 
+              WHEN j IS NOT NULL THEN j
+              WHEN e IS NOT NULL THEN e
+              WHEN s IS NOT NULL THEN s
+              WHEN sp IS NOT NULL THEN sp
+              WHEN a IS NOT NULL THEN a
+              WHEN be IS NOT NULL THEN be
+              WHEN co IS NOT NULL THEN co
+              ELSE p
+            END as node,
+            0.9 as similarity
+          LIMIT 10
+        `, { query });
+        
         // Fallback: If no semantic matches, use keyword search
         let fallbackResults = [];
-        if (colorResult.records.length === 0 && codeResult.records.length === 0) {
+        if (colorResult.records.length === 0 && codeResult.records.length === 0 && marianneResults.records.length === 0) {
           const searchTerm = this.extractKeywordsFromMessage(query);
           const fallbackColorResult = await session.run(`
             MATCH (c:Color)
@@ -592,7 +642,7 @@ class CustomerManager {
         }
         
         // Combine results (semantic + fallback)
-        const allRecords = [...colorResult.records, ...codeResult.records, ...fallbackResults];
+        const allRecords = [...colorResult.records, ...codeResult.records, ...marianneResults.records, ...fallbackResults];
         
         const foundData = allRecords.map(record => {
           const nodeType = record.get('nodeType');
@@ -631,6 +681,44 @@ class CustomerManager {
               const type = item.properties.component_type || 'Unknown';
               const path = item.properties.file_path || 'Unknown path';
               return `- ${labels}: ${name} (${type}) at ${path} ${confidence}`;
+            } else if (item.type === 'Job') {
+              // Handle Marianne's job experience
+              const company = item.properties.company || 'Unknown Company';
+              const title = item.properties.title || 'Unknown Position';
+              const duration = item.properties.duration || 'Unknown Duration';
+              const location = item.properties.location || '';
+              return `- ${labels}: ${title} at ${company} (${duration}) ${location} ${confidence}`;
+            } else if (item.type === 'Education') {
+              // Handle Marianne's education
+              const institution = item.properties.institution || 'Unknown Institution';
+              const degree = item.properties.degree_type || 'Degree';
+              const field = item.properties.field_of_study || '';
+              const duration = item.properties.duration || '';
+              return `- ${labels}: ${degree} in ${field} from ${institution} (${duration}) ${confidence}`;
+            } else if (item.type === 'SkillProficiency') {
+              // Handle skill proficiency details
+              const skill = item.properties.skill_name || 'Unknown Skill';
+              const level = item.properties.proficiency_level || 'Unknown Level';
+              const years = item.properties.years_experience || '';
+              const description = item.properties.description || '';
+              return `- ${labels}: ${skill} - ${level} proficiency (${years}) - ${description} ${confidence}`;
+            } else if (item.type === 'Achievement') {
+              // Handle quantified achievements
+              const metric = item.properties.metric || 'Achievement';
+              const value = item.properties.value || '';
+              const context = item.properties.context || '';
+              return `- ${labels}: ${metric}: ${value} - ${context} ${confidence}`;
+            } else if (item.type === 'BehavioralExample') {
+              // Handle STAR method examples
+              const type = item.properties.type || 'Example';
+              const situation = item.properties.situation || '';
+              const result = item.properties.result || '';
+              return `- ${labels}: ${type} Example - ${situation} → ${result} ${confidence}`;
+            } else if (item.type === 'CareerObjectives') {
+              // Handle career objectives
+              const roles = item.properties.target_roles || [];
+              const industries = item.properties.preferred_industries || [];
+              return `- ${labels}: Target roles: ${Array.isArray(roles) ? roles.join(', ') : roles} in ${Array.isArray(industries) ? industries.join(', ') : industries} ${confidence}`;
             } else {
               // Fallback for other types
               const props = Object.entries(item.properties)
@@ -643,18 +731,24 @@ class CustomerManager {
         }
 
         // Create enhanced prompt with Neo4j data
-        const enhancedPrompt = `You are a knowledgeable representative of DOC Painting, a family-owned painting business serving Boston and the South Shore.
+        const enhancedPrompt = `You are an intelligent assistant for DOC Painting, a family-owned painting business serving Boston and the South Shore.
 
-Company specialties:
-- Interior & Exterior Painting
-- Historical Restoration (Victorian homes)
-- High-end Faux Finishes with Fine Paints of Europe
-- Deck Restoration with Brazilian Rosewood & Penofin
-- Cabinet Refinishing
-- Commercial Painting
+You can help with:
+1. DOC Painting Services & Information:
+   - Interior & Exterior Painting
+   - Historical Restoration (Victorian homes)
+   - High-end Faux Finishes with Fine Paints of Europe
+   - Deck Restoration with Brazilian Rosewood & Penofin
+   - Cabinet Refinishing
+   - Commercial Painting
+   Contact: (978) 408-5183 or thedoc@docpainting.com
+   Color Reference: https://www.sherwin-williams.com/en-us/color
 
-Contact: (978) 408-5183 or thedoc@docpainting.com
-Color Reference: https://www.sherwin-williams.com/en-us/color
+2. Marianne Abrams Professional Information:
+   - Resume details, work history, education
+   - Professional skills and experience
+   - Career objectives and achievements
+   - Technical expertise and qualifications
 
 ${knowledgeContext}
 
@@ -663,7 +757,10 @@ ${historyContext}
 
 Customer question: ${query}
 
-Respond professionally as DOC Painting. Use the knowledge base information to provide accurate, detailed answers. Include specific details when relevant. If you need more information for a quote, ask for project details and offer to connect them with our team.`;
+INSTRUCTIONS:
+- If asked about DOC Painting services, colors, or projects: Respond professionally with detailed painting information and offer to connect them with our team.
+- If asked about Marianne Abrams: Provide accurate information from the knowledge base about her professional background, education, work experience, and qualifications.
+- Use the knowledge base information to provide accurate, detailed answers with specific details when relevant.`;
 
         const response = await llm.invoke(enhancedPrompt);
         
