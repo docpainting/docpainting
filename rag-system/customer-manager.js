@@ -93,7 +93,7 @@ async function initLangChain() {
 
   if (!llm) {
     llm = new ChatOpenAI({
-      model: 'qwen/qwen3-235b-a22b-2507:free',
+      model: 'qwen/qwen3-235b-a22b-07-25:free',
       apiKey: apiKey,
       configuration: {
         baseURL: 'https://openrouter.ai/api/v1',
@@ -523,7 +523,7 @@ class CustomerManager {
           count(DISTINCT c) as total_customers,
           count(DISTINCT conv) as total_conversations,
           count(m) as total_messages,
-          avg(size((c)-[:HAS_CONVERSATION]->())) as avg_conversations,
+          avg(COUNT { (c)-[:HAS_CONVERSATION]->() }) as avg_conversations,
           avg(s.score) as avg_sentiment,
           collect(DISTINCT t.category)[0..5] as top_topics
       `, { cutoff: cutoff.toISOString() }, 'READ');
@@ -536,48 +536,59 @@ class CustomerManager {
 
   async handleQuery(conversationId, query) {
     try {
+      logger.info(`
+--- STARTING QUERY ---`);
       logger.info(`Handling query for conv: ${conversationId}, query: ${query}`);
       
       // Get conversation history for context
+      logger.info('Step 1: Getting conversation history...');
+      logger.info(`Executing Neo4j query: MATCH (conv:Conversation {id: $conversationId})-[:CONTAINS_MESSAGE]->(m:Message)...`);
       const history = await this.getConversationHistory(conversationId, 10);
+      logger.info(`Neo4j query executed: MATCH (conv:Conversation {id: $conversationId})-[:CONTAINS_MESSAGE]->(m:Message)`);
+      logger.info('Step 1: History retrieved.');
       const historyContext = history.map(m => `${m.sender}: ${m.content}`).join('\n');
 
       // Generate embedding for the query
+      logger.info('Step 2: Generating query embedding...');
       const queryEmbedding = await embeddings.embedQuery(query);
+      logger.info('Step 2: Embedding generated.');
       
       // Search Neo4j knowledge base using semantic similarity
+      logger.info('Step 3: Starting Neo4j search session...');
       const session = this.driver.session();
       try {
-        // Semantic search for colors using APOC cosine similarity
-        const colorResult = await session.run(`
-          MATCH (c:Color)
-          WHERE c.embedding IS NOT NULL
-          WITH c, reduce(dot = 0.0, i IN range(0, size($queryEmbedding)-1) | dot + ($queryEmbedding[i] * c.embedding[i])) AS similarity
-          WHERE similarity > 0.7
-          RETURN 'Color' as nodeType, labels(c) as nodeLabels, c as node, similarity
-          ORDER BY similarity DESC
+        // Search for DOC Painting projects and materials
+        logger.info('Step 3a: Searching for projects and materials...');
+        logger.info(`Executing Neo4j query: MATCH (p:Project)...`);
+        const projectResult = await session.run(`
+          MATCH (p:Project)
+          RETURN 'Project' as nodeType, labels(p) as nodeLabels, p as node, 0.8 as similarity
           LIMIT 5
-        `, { queryEmbedding });
-        
-        // Semantic search for code components
-        const codeResult = await session.run(`
-          MATCH (c:CodeComponent)
-          WHERE c.embedding IS NOT NULL
-          WITH c, reduce(dot = 0.0, i IN range(0, size($queryEmbedding)-1) | dot + ($queryEmbedding[i] * c.embedding[i])) AS similarity
-          WHERE similarity > 0.7
-          RETURN 'CodeComponent' as nodeType, labels(c) as nodeLabels, c as node, similarity
-          ORDER BY similarity DESC
+        `);
+        logger.info(`Neo4j query executed: MATCH (p:Project)`);
+        logger.info(`Step 3a: Found ${projectResult.records.length} project results.`);
+
+        // Search for DOC Painting materials and techniques
+        logger.info('Step 3b: Searching for materials and techniques...');
+        logger.info(`Executing Neo4j query: MATCH (m:Material)...`);
+        const materialResult = await session.run(`
+          MATCH (m:Material)
+          RETURN 'Material' as nodeType, labels(m) as nodeLabels, m as node, 0.8 as similarity
           LIMIT 5
-        `, { queryEmbedding });
-        
+        `);
+        logger.info(`Neo4j query executed: MATCH (m:Material)`);
+        logger.info(`Step 3b: Found ${materialResult.records.length} material results.`);
+
         // Search for Marianne Abrams professional data
         let marianneResult = { records: [] };
         const lowerQuery = query.toLowerCase();
+        logger.info('Step 3c: Checking for Marianne query...');
         if (lowerQuery.includes('marianne') || lowerQuery.includes('abrams') ||
             lowerQuery.includes('school') || lowerQuery.includes('college') ||
             lowerQuery.includes('education') || lowerQuery.includes('work') ||
             lowerQuery.includes('job') || lowerQuery.includes('experience') ||
             lowerQuery.includes('skill') || lowerQuery.includes('resume')) {
+          logger.info(`Executing Neo4j query: MATCH (p:Person {name: 'Marianne Abrams'})-[:HAS_CONVERSATION]->(conv:Conversation)...`);
           marianneResult = await session.run(`
             MATCH (p:Person {name: 'Marianne Abrams'})-[r]->(related)
             RETURN 
@@ -587,162 +598,53 @@ class CustomerManager {
               0.9 as similarity
             LIMIT 50
           `);
+          logger.info(`Neo4j query executed: MATCH (p:Person {name: 'Marianne Abrams'})-[:HAS_CONVERSATION]->(conv:Conversation)`);
+          logger.info(`Step 3c: Found ${marianneResult.records.length} Marianne results.`);
         }
         
         // Fallback: If no semantic matches, use keyword search
         let fallbackResults = [];
-        if (colorResult.records.length === 0 && codeResult.records.length === 0 && marianneResult.records.length === 0) {
+        if (projectResult.records.length === 0 && materialResult.records.length === 0 && marianneResult.records.length === 0) {
           const searchTerm = this.extractKeywordsFromMessage(query);
-          const fallbackColorResult = await session.run(`
-            MATCH (c:Color)
-            WHERE toLower(c.name) CONTAINS toLower($searchTerm) OR toLower(c.category) CONTAINS toLower($searchTerm)
-            RETURN 'Color' as nodeType, labels(c) as nodeLabels, c as node, 0.5 as similarity
+          logger.info('Step 3d: Searching for projects using keyword search...');
+          logger.info(`Executing Neo4j query: MATCH (p:Project)...`);
+          const fallbackProjectResult = await session.run(`
+            MATCH (p:Project)
+            WHERE toLower(p.description) CONTAINS toLower($searchTerm) OR toLower(p.type) CONTAINS toLower($searchTerm)
+            RETURN 'Project' as nodeType, labels(p) as nodeLabels, p as node, 0.5 as similarity
             LIMIT 3
           `, { searchTerm });
-          
-          const fallbackCodeResult = await session.run(`
-            MATCH (c:CodeComponent)
-            WHERE c.name IS NOT NULL AND toLower(c.name) CONTAINS toLower($searchTerm)
-            RETURN 'CodeComponent' as nodeType, labels(c) as nodeLabels, c as node, 0.5 as similarity
+          logger.info(`Neo4j query executed: MATCH (p:Project)`);
+          logger.info('Step 3d: Searching for materials using keyword search...');
+          logger.info(`Executing Neo4j query: MATCH (m:Material)...`);
+          const fallbackMaterialResult = await session.run(`
+            MATCH (m:Material)
+            WHERE m.name IS NOT NULL AND toLower(m.name) CONTAINS toLower($searchTerm)
+            RETURN 'Material' as nodeType, labels(m) as nodeLabels, m as node, 0.5 as similarity
             LIMIT 3
           `, { searchTerm });
-          
-          fallbackResults = [...fallbackColorResult.records, ...fallbackCodeResult.records];
+          logger.info(`Neo4j query executed: MATCH (m:Material)`);
+          fallbackResults = [...fallbackProjectResult.records, ...fallbackMaterialResult.records];
         }
         
         // Combine results (semantic + fallback)
-        const allRecords = [...colorResult.records, ...codeResult.records, ...marianneResult.records, ...fallbackResults];
+        const combinedResults = [...projectResult.records, ...materialResult.records, ...marianneResult.records, ...fallbackResults];
+        logger.info(`Step 4: Total knowledge items found: ${combinedResults.length}`);
+        const knowledgeItems = combinedResults.map(record => this.formatNodeForAI(record.get('node'), record.get('similarity'), record.get('nodeType')));
+        logger.info('Step 5: Calling LLM for final response...');
+        logger.info(`Executing LLM query: ${query}...`);
+        const aiResponse = await this._getAIResponse(historyContext, query, knowledgeItems.join('\n\n---\n\n'));
+        logger.info(`LLM query executed: ${query}`);
+        logger.info('Step 5: LLM response received.');
         
-        const foundData = allRecords.map(record => {
-          const nodeType = record.get('nodeType');
-          const labels = record.get('nodeLabels');
-          const node = record.get('node').properties;
-          const similarity = record.get('similarity');
-          return {
-            type: nodeType,
-            labels: labels,
-            properties: node,
-            similarity: similarity
-          };
-        });
+        // Store AI response in conversation
+        await this.addMessage(conversationId, 'ai', aiResponse);
         
-        // Sort by similarity score (highest first)
-        foundData.sort((a, b) => b.similarity - a.similarity);
-
-        // Create context from found data with similarity scores
-        let knowledgeContext = '';
-        if (foundData.length > 0) {
-          const searchMethod = foundData[0].similarity > 0.6 ? 'semantic similarity' : 'keyword matching';
-          knowledgeContext = `\nRelevant information from DOC Painting knowledge base (found via ${searchMethod}):\n${foundData.map(item => {
-            const labels = item.labels.join(':');
-            const confidence = `(${Math.round(item.similarity * 100)}% match)`;
-            
-            if (item.type === 'Color') {
-              // Handle color data
-              const props = Object.entries(item.properties)
-                .filter(([key, value]) => value && key !== 'created_at' && key !== 'updated_at' && key !== 'embedding')
-                .map(([key, value]) => `${key}: ${value}`)
-                .join(', ');
-              return `- ${labels}: ${props} ${confidence}`;
-            } else if (item.type === 'CodeComponent') {
-              // Handle code component data (avoid arrays)
-              const name = item.properties.name || 'Unknown';
-              const type = item.properties.component_type || 'Unknown';
-              const path = item.properties.file_path || 'Unknown path';
-              return `- ${labels}: ${name} (${type}) at ${path} ${confidence}`;
-            } else if (item.type === 'Job') {
-              // Handle Marianne's job experience
-              const company = item.properties.company || 'Unknown Company';
-              const title = item.properties.title || 'Unknown Position';
-              const duration = item.properties.duration || 'Unknown Duration';
-              const location = item.properties.location || '';
-              return `- ${labels}: ${title} at ${company} (${duration}) ${location} ${confidence}`;
-            } else if (item.type === 'Education') {
-              // Handle Marianne's education
-              const institution = item.properties.institution || 'Unknown Institution';
-              const degree = item.properties.degree_type || 'Degree';
-              const field = item.properties.field_of_study || '';
-              const duration = item.properties.duration || '';
-              return `- ${labels}: ${degree} in ${field} from ${institution} (${duration}) ${confidence}`;
-            } else if (item.type === 'SkillProficiency') {
-              // Handle skill proficiency details
-              const skill = item.properties.skill_name || 'Unknown Skill';
-              const level = item.properties.proficiency_level || 'Unknown Level';
-              const years = item.properties.years_experience || '';
-              const description = item.properties.description || '';
-              return `- ${labels}: ${skill} - ${level} proficiency (${years}) - ${description} ${confidence}`;
-            } else if (item.type === 'Achievement') {
-              // Handle quantified achievements
-              const metric = item.properties.metric || 'Achievement';
-              const value = item.properties.value || '';
-              const context = item.properties.context || '';
-              return `- ${labels}: ${metric}: ${value} - ${context} ${confidence}`;
-            } else if (item.type === 'BehavioralExample') {
-              // Handle STAR method examples
-              const type = item.properties.type || 'Example';
-              const situation = item.properties.situation || '';
-              const result = item.properties.result || '';
-              return `- ${labels}: ${type} Example - ${situation} → ${result} ${confidence}`;
-            } else if (item.type === 'CareerObjectives') {
-              // Handle career objectives
-              const roles = item.properties.target_roles || [];
-              const industries = item.properties.preferred_industries || [];
-              return `- ${labels}: Target roles: ${Array.isArray(roles) ? roles.join(', ') : roles} in ${Array.isArray(industries) ? industries.join(', ') : industries} ${confidence}`;
-            } else {
-              // Fallback for other types
-              const props = Object.entries(item.properties)
-                .filter(([key, value]) => value && key !== 'created_at' && key !== 'updated_at' && key !== 'embedding' && !Array.isArray(value))
-                .map(([key, value]) => `${key}: ${value}`)
-                .join(', ');
-              return `- ${labels}: ${props} ${confidence}`;
-            }
-          }).join('\n')}`;
-        }
-
-        // Create enhanced prompt with Neo4j data
-        const enhancedPrompt = `You are an intelligent assistant for DOC Painting, a family-owned painting business serving Boston and the South Shore.
-
-You can help with:
-1. DOC Painting Services & Information:
-   - Interior & Exterior Painting
-   - Historical Restoration (Victorian homes)
-   - High-end Faux Finishes with Fine Paints of Europe
-   - Deck Restoration with Brazilian Rosewood & Penofin
-   - Cabinet Refinishing
-   - Commercial Painting
-   Contact: (978) 408-5183 or thedoc@docpainting.com
-   Color Reference: https://www.sherwin-williams.com/en-us/color
-
-2. Marianne Abrams Professional Information:
-   - Resume details, work history, education
-   - Professional skills and experience
-   - Career objectives and achievements
-   - Technical expertise and qualifications
-
-${knowledgeContext}
-
-Conversation history:
-${historyContext}
-
-Customer question: ${query}
-
-INSTRUCTIONS:
-- If asked about DOC Painting services, colors, or projects: Respond professionally with detailed painting information and offer to connect them with our team.
-- If asked about Marianne Abrams: Provide accurate information from the knowledge base about her professional background, education, work experience, and qualifications.
-- Use the knowledge base information to provide accurate, detailed answers with specific details when relevant.`;
-
-        const response = await llm.invoke(enhancedPrompt);
-        
-        // Store AI response
-        await this.addMessage(conversationId, 'ai', response.content);
-
-        return { 
-          response: response.content, 
-          source: 'ai', 
-          confidence: 0.8,
-          knowledge_items_found: foundData.length
+        return {
+          response: aiResponse,
+          source: 'ai',
+          knowledgeItemsFound: combinedResults.length
         };
-        
       } finally {
         await session.close();
       }
@@ -750,8 +652,61 @@ INSTRUCTIONS:
       logger.error('Query handling error:', error);
       const fallbackResponse = "I'd be happy to help you with your painting project! For detailed information and quotes, please call us at (978) 408-5183 or email thedoc@docpainting.com. Our team can provide personalized assistance for your specific needs.";
       await this.addMessage(conversationId, 'ai', fallbackResponse);
-      return { response: fallbackResponse, source: 'fallback' };
+      return { response: fallbackResponse, source: 'fallback', knowledgeItemsFound: 0 };
     }
+  }
+
+  // Helper function to format nodes for AI consumption
+  formatNodeForAI(node, similarity, nodeType) {
+    const confidence = `(${Math.round(similarity * 100)}% match)`;
+    
+    if (nodeType === 'Color') {
+      const props = Object.entries(node.properties || {})
+        .filter(([key, value]) => value && key !== 'created_at' && key !== 'updated_at' && key !== 'embedding')
+        .map(([key, value]) => `${key}: ${value}`)
+        .join(', ');
+      return `Color: ${props} ${confidence}`;
+    } else if (nodeType === 'CodeComponent') {
+      const name = node.properties?.name || 'Unknown';
+      const type = node.properties?.component_type || 'Unknown';
+      const path = node.properties?.file_path || 'Unknown path';
+      return `CodeComponent: ${name} (${type}) at ${path} ${confidence}`;
+    } else if (nodeType === 'Job') {
+      const company = node.properties?.company || 'Unknown Company';
+      const title = node.properties?.title || 'Unknown Position';
+      const duration = node.properties?.duration || 'Unknown Duration';
+      const location = node.properties?.location || '';
+      return `Job: ${title} at ${company} (${duration}) ${location} ${confidence}`;
+    } else if (nodeType === 'Education') {
+      const institution = node.properties?.institution || 'Unknown Institution';
+      const degree = node.properties?.degree_type || 'Degree';
+      const field = node.properties?.field_of_study || '';
+      const duration = node.properties?.duration || '';
+      return `Education: ${degree} in ${field} from ${institution} (${duration}) ${confidence}`;
+    } else if (nodeType === 'SkillProficiency') {
+      const skill = node.properties?.skill_name || 'Unknown Skill';
+      const level = node.properties?.proficiency_level || 'Unknown Level';
+      const years = node.properties?.years_experience || '';
+      const description = node.properties?.description || '';
+      return `Skill: ${skill} - ${level} proficiency (${years}) - ${description} ${confidence}`;
+    } else if (nodeType === 'Achievement') {
+      const metric = node.properties?.metric || 'Achievement';
+      const value = node.properties?.value || '';
+      const context = node.properties?.context || '';
+      return `Achievement: ${metric}: ${value} - ${context} ${confidence}`;
+    } else if (nodeType === 'BehavioralExample') {
+      const type = node.properties?.type || 'Example';
+      const situation = node.properties?.situation || '';
+      const result = node.properties?.result || '';
+      return `BehavioralExample: ${type} - ${situation} → ${result} ${confidence}`;
+    } else {
+      const props = Object.entries(node.properties || {})
+        .filter(([key, value]) => value && key !== 'created_at' && key !== 'updated_at' && key !== 'embedding' && !Array.isArray(value))
+        .map(([key, value]) => `${key}: ${value}`)
+        .join(', ');
+      return `${nodeType}: ${props} ${confidence}`;
+    }
+
   }
 
   // Generate embeddings for existing knowledge base nodes
@@ -855,6 +810,45 @@ INSTRUCTIONS:
       logger.error('Failed to send lead notification:', error);
       throw error;
     }
+  }
+
+  // Generate AI response using OpenRouter LLM
+  async _getAIResponse(historyContext, query, knowledgeContext) {
+    const enhancedPrompt = `You are an intelligent assistant for DOC Painting, a family-owned painting business serving Boston and the South Shore.
+
+You can help with:
+1. DOC Painting Services & Information:
+   - Interior & Exterior Painting
+   - Historical Restoration (Victorian homes)
+   - High-end Faux Finishes with Fine Paints of Europe
+   - Deck Restoration with Brazilian Rosewood & Penofin
+   - Cabinet Refinishing
+   - Commercial Painting
+   Contact: (978) 408-5183 or thedoc@docpainting.com
+   Color Reference: https://www.sherwin-williams.com/en-us/color
+
+2. Marianne Abrams Professional Information:
+   - Resume details, work history, education
+   - Professional skills and experience
+   - Career objectives and achievements
+   - Technical expertise and qualifications
+
+Relevant knowledge from database:
+${knowledgeContext}
+
+Conversation history:
+${historyContext}
+
+Customer question: ${query}
+
+INSTRUCTIONS:
+- If asked about DOC Painting services, colors, or projects: Respond professionally with detailed painting information and offer to connect them with our team.
+- If asked about Marianne Abrams: Provide accurate information from the knowledge base about her professional background, education, work experience, and qualifications.
+- Use the knowledge base information to provide accurate, detailed answers with specific details when relevant.
+- Be helpful, professional, and informative.`;
+
+    const response = await llm.invoke(enhancedPrompt);
+    return response.content;
   }
 
   // Helper function to extract keywords from messages

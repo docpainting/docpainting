@@ -1,6 +1,6 @@
 // Complete debug function for both Neo4j and OpenRouter on Netlify
 const neo4j = require('neo4j-driver');
-const { ChatOpenAI } = require('langchain/chat_models/openai');
+const { ChatOpenAI } = require('@langchain/openai');
 
 exports.handler = async (event, context) => {
   const headers = {

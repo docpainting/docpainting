@@ -85,7 +85,7 @@ exports.handler = async (event, context) => {
         response: result.response,
         conversationId: currentConversationId,
         customerUuid: customer.uuid,
-        knowledgeItemsFound: result.knowledge_items_found || 0,
+        knowledgeItemsFound: result.knowledgeItemsFound || 0,
         timestamp: new Date().toISOString()
       })
     };
