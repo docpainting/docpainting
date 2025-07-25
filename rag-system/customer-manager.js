@@ -11,7 +11,6 @@
 const neo4j = require('neo4j-driver');
 const { v4: uuidv4 } = require('uuid');
 const { ChatOpenAI } = require('@langchain/openai');
-const { Neo4jGraph } = require('@langchain/community/graphs/neo4j_graph');
 const { z } = require('zod');
 const nodemailer = require('nodemailer');
 const winston = require('winston');
