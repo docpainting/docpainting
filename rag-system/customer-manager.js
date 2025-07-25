@@ -93,7 +93,7 @@ async function initLangChain() {
 
   if (!llm) {
     llm = new ChatOpenAI({
-      model: 'qwen/qwen-2.5-72b-instruct',
+      model: 'qwen/qwen3-235b-a22b-2507:free',
       apiKey: apiKey,
       configuration: {
         baseURL: 'https://openrouter.ai/api/v1',
@@ -571,20 +571,23 @@ class CustomerManager {
         `, { queryEmbedding });
         
         // Search for Marianne Abrams professional data
-        const marianneResult = await session.run(`
-          MATCH (p:Person {name: 'Marianne Abrams'})-[r]->(related)
-          WHERE toLower($query) CONTAINS 'marianne' OR toLower($query) CONTAINS 'abrams' OR
-                toLower($query) CONTAINS 'school' OR toLower($query) CONTAINS 'college' OR
-                toLower($query) CONTAINS 'education' OR toLower($query) CONTAINS 'work' OR
-                toLower($query) CONTAINS 'job' OR toLower($query) CONTAINS 'experience' OR
-                toLower($query) CONTAINS 'skill' OR toLower($query) CONTAINS 'resume'
-          RETURN 
-            labels(related)[0] as nodeType,
-            labels(related) as nodeLabels,
-            related as node,
-            0.9 as similarity
-          LIMIT 50
-        `, { query });
+        let marianneResult = { records: [] };
+        const lowerQuery = query.toLowerCase();
+        if (lowerQuery.includes('marianne') || lowerQuery.includes('abrams') ||
+            lowerQuery.includes('school') || lowerQuery.includes('college') ||
+            lowerQuery.includes('education') || lowerQuery.includes('work') ||
+            lowerQuery.includes('job') || lowerQuery.includes('experience') ||
+            lowerQuery.includes('skill') || lowerQuery.includes('resume')) {
+          marianneResult = await session.run(`
+            MATCH (p:Person {name: 'Marianne Abrams'})-[r]->(related)
+            RETURN 
+              labels(related)[0] as nodeType,
+              labels(related) as nodeLabels,
+              related as node,
+              0.9 as similarity
+            LIMIT 50
+          `);
+        }
         
         // Fallback: If no semantic matches, use keyword search
         let fallbackResults = [];
