@@ -93,7 +93,7 @@ async function initLangChain() {
 
   if (!llm) {
     llm = new ChatOpenAI({
-      model: 'qwen/qwen3-235b-a22b-07-25:free',
+      model: 'qwen/qwen-2.5-72b-instruct',
       apiKey: apiKey,
       configuration: {
         baseURL: 'https://openrouter.ai/api/v1',
