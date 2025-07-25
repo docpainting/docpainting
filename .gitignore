@@ -75,3 +75,6 @@ rag-system/error.log
 !rag-system/setup-neo4j.js
 !rag-system/search-code-components.js
 !rag-system/populate-database.js
+
+# Local Netlify folder
+.netlify
