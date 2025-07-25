@@ -571,58 +571,50 @@ class CustomerManager {
         `, { queryEmbedding });
         
         // Search for Marianne Abrams professional data
-        const marianneResults = await session.run(`
+        const marianneResult = await session.run(`
           MATCH (p:Person {name: 'Marianne Abrams'})
-          OPTIONAL MATCH (p)-[:WORKED_AT]->(j:Job)
-          OPTIONAL MATCH (p)-[:STUDIED_AT]->(e:Education)
-          OPTIONAL MATCH (p)-[:HAS_SKILL]->(s:Skill)
-          OPTIONAL MATCH (p)-[:HAS_PROFICIENCY]->(sp:SkillProficiency)
-          OPTIONAL MATCH (p)-[:ACHIEVED]->(a:Achievement)
-          OPTIONAL MATCH (p)-[:HAS_EXAMPLE]->(be:BehavioralExample)
-          OPTIONAL MATCH (p)-[:HAS_OBJECTIVES]->(co:CareerObjectives)
           WHERE toLower($query) CONTAINS 'marianne' OR toLower($query) CONTAINS 'abrams' OR
                 toLower($query) CONTAINS 'school' OR toLower($query) CONTAINS 'college' OR
                 toLower($query) CONTAINS 'education' OR toLower($query) CONTAINS 'work' OR
                 toLower($query) CONTAINS 'job' OR toLower($query) CONTAINS 'experience' OR
                 toLower($query) CONTAINS 'skill' OR toLower($query) CONTAINS 'resume'
-          RETURN 
-            CASE 
-              WHEN j IS NOT NULL THEN 'Job'
-              WHEN e IS NOT NULL THEN 'Education'
-              WHEN s IS NOT NULL THEN 'Skill'
-              WHEN sp IS NOT NULL THEN 'SkillProficiency'
-              WHEN a IS NOT NULL THEN 'Achievement'
-              WHEN be IS NOT NULL THEN 'BehavioralExample'
-              WHEN co IS NOT NULL THEN 'CareerObjectives'
-              ELSE 'Person'
-            END as nodeType,
-            CASE 
-              WHEN j IS NOT NULL THEN labels(j)
-              WHEN e IS NOT NULL THEN labels(e)
-              WHEN s IS NOT NULL THEN labels(s)
-              WHEN sp IS NOT NULL THEN labels(sp)
-              WHEN a IS NOT NULL THEN labels(a)
-              WHEN be IS NOT NULL THEN labels(be)
-              WHEN co IS NOT NULL THEN labels(co)
-              ELSE labels(p)
-            END as nodeLabels,
-            CASE 
-              WHEN j IS NOT NULL THEN j
-              WHEN e IS NOT NULL THEN e
-              WHEN s IS NOT NULL THEN s
-              WHEN sp IS NOT NULL THEN sp
-              WHEN a IS NOT NULL THEN a
-              WHEN be IS NOT NULL THEN be
-              WHEN co IS NOT NULL THEN co
-              ELSE p
-            END as node,
-            0.9 as similarity
-          LIMIT 10
+          WITH p
+          CALL {
+            WITH p
+            MATCH (p)-[:WORKED_AT]->(j:Job)
+            RETURN 'Job' as type, j as content
+            UNION ALL
+            WITH p
+            MATCH (p)-[:STUDIED_AT]->(e:Education)
+            RETURN 'Education' as type, e as content
+            UNION ALL
+            WITH p
+            MATCH (p)-[:HAS_SKILL]->(s:Skill)
+            RETURN 'Skill' as type, s as content
+            UNION ALL
+            WITH p
+            MATCH (p)-[:HAS_PROFICIENCY]->(sp:SkillProficiency)
+            RETURN 'SkillProficiency' as type, sp as content
+            UNION ALL
+            WITH p
+            MATCH (p)-[:ACHIEVED]->(a:Achievement)
+            RETURN 'Achievement' as type, a as content
+            UNION ALL
+            WITH p
+            MATCH (p)-[:HAS_EXAMPLE]->(be:BehavioralExample)
+            RETURN 'BehavioralExample' as type, be as content
+            UNION ALL
+            WITH p
+            MATCH (p)-[:HAS_OBJECTIVES]->(co:CareerObjectives)
+            RETURN 'CareerObjectives' as type, co as content
+          }
+          RETURN DISTINCT type, content
+          LIMIT 100
         `, { query });
         
         // Fallback: If no semantic matches, use keyword search
         let fallbackResults = [];
-        if (colorResult.records.length === 0 && codeResult.records.length === 0 && marianneResults.records.length === 0) {
+        if (colorResult.records.length === 0 && codeResult.records.length === 0 && marianneResult.records.length === 0) {
           const searchTerm = this.extractKeywordsFromMessage(query);
           const fallbackColorResult = await session.run(`
             MATCH (c:Color)
@@ -642,13 +634,26 @@ class CustomerManager {
         }
         
         // Combine results (semantic + fallback)
-        const allRecords = [...colorResult.records, ...codeResult.records, ...marianneResults.records, ...fallbackResults];
+        const allRecords = [...colorResult.records, ...codeResult.records, ...marianneResult.records, ...fallbackResults];
         
         const foundData = allRecords.map(record => {
-          const nodeType = record.get('nodeType');
-          const labels = record.get('nodeLabels');
-          const node = record.get('node').properties;
-          const similarity = record.get('similarity');
+          // Handle different result formats
+          let nodeType, labels, node, similarity;
+          
+          if (record.has('nodeType')) {
+            // Old format from color/code queries
+            nodeType = record.get('nodeType');
+            labels = record.get('nodeLabels');
+            node = record.get('node').properties;
+            similarity = record.get('similarity');
+          } else {
+            // New format from Marianne query
+            nodeType = record.get('type');
+            labels = [nodeType];
+            node = record.get('content').properties;
+            similarity = 0.9; // High similarity for keyword matches
+          }
+          
           return {
             type: nodeType,
             labels: labels,
