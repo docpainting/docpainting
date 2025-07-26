@@ -1,6 +1,13 @@
 exports.handler = async (event, context) => {
   try {
-    const CustomerManager = require('../../rag-system/customer-manager');
+    // Import CustomerManager with explicit destructuring
+    const { CustomerManager } = require('../../rag-system/customer-manager');
+    
+    // Validate CustomerManager is properly imported
+    if (typeof CustomerManager !== 'function') {
+      throw new Error(`CustomerManager import failed. Type: ${typeof CustomerManager}`);
+    }
+    
     const manager = new CustomerManager();
     
     return {
