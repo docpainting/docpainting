@@ -13,6 +13,7 @@ const { ChatOpenAI } = require('@langchain/openai');
 const { z } = require('zod');
 const nodemailer = require('nodemailer');
 const winston = require('winston');
+const fetch = require('node-fetch');
 // Only load dotenv in local development (not in Netlify Functions)
 if (process.env.NODE_ENV !== 'production' && !process.env.AWS_LAMBDA_FUNCTION_NAME) {
   require('dotenv').config();
@@ -104,37 +105,47 @@ async function initLangChain() {
     });
   }
   if (!embeddings) {
-    // Use optimized hash-based embeddings (Neo4j compatible)
+    // Direct HTTP embeddings (no library needed)
+    this.hfToken = process.env.HF_TOKEN;
+    this.embeddingModel = 'BAAI/bge-large-en-v1.5'; // 1024D embeddings
+    this.embeddingDimensions = 1024;
+
     embeddings = {
       embedQuery: async (text) => {
-        const words = text.toLowerCase().split(/\s+/).filter(w => w.length > 2);
-        const embedding = new Array(512).fill(0.0); // Neo4j-friendly size
-        
-        // Better hash-based embedding with multiple hash functions
-        words.forEach((word, wordIndex) => {
-          for (let i = 0; i < 3; i++) { // Multiple hash functions
-            let hash = 0;
-            const seed = i * 31 + wordIndex;
-            for (let j = 0; j < word.length; j++) {
-              hash = ((hash << 5) - hash + word.charCodeAt(j) + seed) & 0x7fffffff;
-            }
-            const index = hash % 512;
-            embedding[index] += (1.0 + Math.sin(hash * 0.001)) / words.length;
+        try {
+          const response = await fetch(`https://api-inference.huggingface.co/models/BAAI/bge-large-en-v1.5`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${process.env.HF_TOKEN}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ inputs: [text] }) // Array format like our working test
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Hugging Face API Error: ${response.status} - ${errorText}`);
           }
-        });
-        
-        // Normalize to unit vector for cosine similarity
-        const magnitude = Math.sqrt(embedding.reduce((sum, val) => sum + val * val, 0));
-        if (magnitude > 0) {
-          for (let i = 0; i < embedding.length; i++) {
-            embedding[i] = embedding[i] / magnitude;
+
+          const result = await response.json();
+          
+          // Extract embedding from response (same format as our working test)
+          const embedding = Array.isArray(result) && Array.isArray(result[0]) ? result[0] : result;
+          
+          // Validate embedding dimensions (should be 1024 for BAAI/bge-large-en-v1.5)
+          if (!Array.isArray(embedding) || embedding.length === 0) {
+            throw new Error('Invalid embedding response from Hugging Face');
           }
+          
+          logger.info(`Generated ${embedding.length}D embedding via Hugging Face Direct HTTP`);
+          return embedding;
+        } catch (error) {
+          logger.error('Hugging Face embedding error:', error);
+          throw new Error(`Embedding generation failed: ${error.message}`);
         }
-        
-        return embedding;
       }
     };
-    logger.info('✅ Using optimized embeddings (512 dimensions, Neo4j compatible)');
+    logger.info('✅ Using Hugging Face BAAI/bge-large-en-v1.5 (1024 dimensions, via Direct HTTP)');
   }
   // Disabled: LangChain Neo4jGraph has issues with apoc.meta.data() on some schemas
   // We use direct Neo4j driver queries instead
@@ -175,19 +186,19 @@ async function setupCustomerSchema() {
     await tx.run('CREATE INDEX topic_category IF NOT EXISTS FOR (t:Topic) ON (t.category)');
     await tx.run('CREATE INDEX knowledge_timestamp IF NOT EXISTS FOR (k:Knowledge) ON (k.timestamp)');
 
-    // Native vector indexes for Aura (Enterprise Edition) - correct 512D dimensions
-    await tx.run('CREATE VECTOR INDEX messageEmbedding IF NOT EXISTS FOR (m:Message) ON (m.embedding) OPTIONS {indexConfig: {`vector.dimensions`: 512, `vector.similarity_function`: "cosine"}}');
-    await tx.run('CREATE VECTOR INDEX projectEmbedding IF NOT EXISTS FOR (p:Project) ON (p.embedding) OPTIONS {indexConfig: {`vector.dimensions`: 512, `vector.similarity_function`: "cosine"}}');
-    await tx.run('CREATE VECTOR INDEX materialEmbedding IF NOT EXISTS FOR (m:Material) ON (m.embedding) OPTIONS {indexConfig: {`vector.dimensions`: 512, `vector.similarity_function`: "cosine"}}');
-    await tx.run('CREATE VECTOR INDEX jobEmbedding IF NOT EXISTS FOR (j:Job) ON (j.embedding) OPTIONS {indexConfig: {`vector.dimensions`: 512, `vector.similarity_function`: "cosine"}}');
-    await tx.run('CREATE VECTOR INDEX educationEmbedding IF NOT EXISTS FOR (e:Education) ON (e.embedding) OPTIONS {indexConfig: {`vector.dimensions`: 512, `vector.similarity_function`: "cosine"}}');
-    await tx.run('CREATE VECTOR INDEX skillEmbedding IF NOT EXISTS FOR (s:Skill) ON (s.embedding) OPTIONS {indexConfig: {`vector.dimensions`: 512, `vector.similarity_function`: "cosine"}}');
-    await tx.run('CREATE VECTOR INDEX skillProficiencyEmbedding IF NOT EXISTS FOR (s:SkillProficiency) ON (s.embedding) OPTIONS {indexConfig: {`vector.dimensions`: 512, `vector.similarity_function`: "cosine"}}');
-    await tx.run('CREATE VECTOR INDEX achievementEmbedding IF NOT EXISTS FOR (a:Achievement) ON (a.embedding) OPTIONS {indexConfig: {`vector.dimensions`: 512, `vector.similarity_function`: "cosine"}}');
-    await tx.run('CREATE VECTOR INDEX behavioralEmbedding IF NOT EXISTS FOR (b:BehavioralExample) ON (b.embedding) OPTIONS {indexConfig: {`vector.dimensions`: 512, `vector.similarity_function`: "cosine"}}');
-    await tx.run('CREATE VECTOR INDEX colorEmbedding IF NOT EXISTS FOR (c:Color) ON (c.embedding) OPTIONS {indexConfig: {`vector.dimensions`: 512, `vector.similarity_function`: "cosine"}}');
-    await tx.run('CREATE VECTOR INDEX codeComponentEmbedding IF NOT EXISTS FOR (c:CodeComponent) ON (c.embedding) OPTIONS {indexConfig: {`vector.dimensions`: 512, `vector.similarity_function`: "cosine"}}');
-    logger.info('Native vector indexes created (Aura-enabled)');
+    // Native vector indexes (Aura-enabled, requires indexProvider/indexConfig options)
+    await tx.run('CREATE VECTOR INDEX messageEmbedding IF NOT EXISTS FOR (m:Message) ON (m.embedding) OPTIONS {indexConfig: {`vector.dimensions`: 1024, `vector.similarity_function`: "cosine"}}');
+    await tx.run('CREATE VECTOR INDEX projectEmbedding IF NOT EXISTS FOR (p:Project) ON (p.embedding) OPTIONS {indexConfig: {`vector.dimensions`: 1024, `vector.similarity_function`: "cosine"}}');
+    await tx.run('CREATE VECTOR INDEX materialEmbedding IF NOT EXISTS FOR (m:Material) ON (m.embedding) OPTIONS {indexConfig: {`vector.dimensions`: 1024, `vector.similarity_function`: "cosine"}}');
+    await tx.run('CREATE VECTOR INDEX jobEmbedding IF NOT EXISTS FOR (j:Job) ON (j.embedding) OPTIONS {indexConfig: {`vector.dimensions`: 1024, `vector.similarity_function`: "cosine"}}');
+    await tx.run('CREATE VECTOR INDEX educationEmbedding IF NOT EXISTS FOR (e:Education) ON (e.embedding) OPTIONS {indexConfig: {`vector.dimensions`: 1024, `vector.similarity_function`: "cosine"}}');
+    await tx.run('CREATE VECTOR INDEX skillEmbedding IF NOT EXISTS FOR (s:Skill) ON (s.embedding) OPTIONS {indexConfig: {`vector.dimensions`: 1024, `vector.similarity_function`: "cosine"}}');
+    await tx.run('CREATE VECTOR INDEX skillProficiencyEmbedding IF NOT EXISTS FOR (sp:SkillProficiency) ON (sp.embedding) OPTIONS {indexConfig: {`vector.dimensions`: 1024, `vector.similarity_function`: "cosine"}}');
+    await tx.run('CREATE VECTOR INDEX achievementEmbedding IF NOT EXISTS FOR (a:Achievement) ON (a.embedding) OPTIONS {indexConfig: {`vector.dimensions`: 1024, `vector.similarity_function`: "cosine"}}');
+    await tx.run('CREATE VECTOR INDEX behavioralExampleEmbedding IF NOT EXISTS FOR (be:BehavioralExample) ON (be.embedding) OPTIONS {indexConfig: {`vector.dimensions`: 1024, `vector.similarity_function`: "cosine"}}');
+    await tx.run('CREATE VECTOR INDEX colorEmbedding IF NOT EXISTS FOR (c:Color) ON (c.embedding) OPTIONS {indexConfig: {`vector.dimensions`: 1024, `vector.similarity_function`: "cosine"}}');
+    await tx.run('CREATE VECTOR INDEX codeComponentEmbedding IF NOT EXISTS FOR (c:CodeComponent) ON (c.embedding) OPTIONS {indexConfig: {`vector.dimensions`: 1024, `vector.similarity_function`: "cosine"}}');
+    logger.info('Native vector indexes created (Aura-enabled, 1024D BAAI/bge-large-en-v1.5)');
 
     await tx.commit();
     logger.info('✓ Advanced schema created successfully');
@@ -228,6 +239,72 @@ class CustomerManager {
     }
     
     return normalized;
+  }
+
+  // GDS-Enhanced Knowledge Retrieval using cosine similarity
+  async findSimilarNodesWithGDS(queryEmbedding, nodeType, limit = 10) {
+    try {
+      logger.info(`🔍 Using GDS similarity search for ${nodeType} nodes...`);
+      const session = this.driver.session({ database: 'neo4j' });
+      
+      try {
+        const result = await session.run(`
+          MATCH (n:${nodeType}) 
+          WHERE n.embedding IS NOT NULL
+          WITH n, gds.similarity.cosine(n.embedding, $queryEmbedding) AS similarity
+          WHERE similarity > 0.5
+          RETURN n, similarity
+          ORDER BY similarity DESC
+          LIMIT $limit
+        `, { queryEmbedding, limit: neo4j.int(limit) });
+        
+        const nodes = result.records.map(record => ({
+          node: record.get('n'),
+          similarity: record.get('similarity'),
+          nodeType: nodeType
+        }));
+        
+        logger.info(`✅ GDS found ${nodes.length} similar ${nodeType} nodes`);
+        return nodes;
+      } finally {
+        await session.close();
+      }
+    } catch (error) {
+      logger.error(`❌ GDS similarity search failed for ${nodeType}:`, error);
+      // Fallback to native vector search if GDS fails
+      return await this.fallbackToVectorSearch(queryEmbedding, nodeType, limit);
+    }
+  }
+
+  // Fallback to native vector search if GDS fails
+  async fallbackToVectorSearch(queryEmbedding, nodeType, limit) {
+    try {
+      logger.info(`📐 Falling back to native vector search for ${nodeType}...`);
+      const session = this.driver.session({ database: 'neo4j' });
+      
+      try {
+        const indexName = `${nodeType.toLowerCase()}Embedding`;
+        const result = await session.run(`
+          CALL db.index.vector.queryNodes($indexName, $limit, $queryEmbedding)
+          YIELD node AS n, score AS similarity
+          RETURN n, similarity
+        `, { indexName, limit: neo4j.int(limit), queryEmbedding });
+        
+        const nodes = result.records.map(record => ({
+          node: record.get('n'),
+          similarity: record.get('similarity'),
+          nodeType: nodeType
+        }));
+        
+        logger.info(`✅ Vector search found ${nodes.length} ${nodeType} nodes`);
+        return nodes;
+      } finally {
+        await session.close();
+      }
+    } catch (error) {
+      logger.error(`❌ Vector search also failed for ${nodeType}:`, error);
+      return [];
+    }
   }
 
   // Helper: Run query in transaction
@@ -309,20 +386,26 @@ class CustomerManager {
 
   async addMessage(conversationId, sender, content, metadata = {}) {
     try {
-      logger.info(`Adding ${sender} message to conversation: ${conversationId}`);
-      const msgId = uuidv4();
-      const msgData = {
-        id: msgId,
-        sender,
-        content,
-        timestamp: new Date().toISOString(),
-        ...metadata
-      };
-      await this._runInTx(`
+      logger.info(`Adding message to conversation: ${conversationId}`);
+      
+      // Use APOC UUID generation for better performance
+      const result = await this._runInTx(`
         MATCH (conv:Conversation {id: $conversationId})
-        CREATE (m:Message $msgData)
+        WITH conv, apoc.create.uuid() AS msgId
+        CREATE (m:Message {
+          id: msgId,
+          sender: $sender,
+          content: $content,
+          timestamp: datetime().epochMillis,
+          content_slug: apoc.text.slug($content),
+          content_json: apoc.convert.toJson({sender: $sender, content: $content})
+        })
         MERGE (conv)-[:CONTAINS_MESSAGE]->(m)
-      `, { conversationId, msgData });
+        RETURN msgId, m
+      `, { conversationId, sender, content, ...metadata });
+      
+      const msgId = result.records[0].get('msgId');
+      logger.info(`✅ Message added with APOC UUID: ${msgId}`);
 
       // Post-add: Embedding and classification (async to not block)
       this.addEmbeddingToMessage(msgId, content).catch(err => logger.error('Embedding error:', err));
@@ -595,54 +678,36 @@ class CustomerManager {
           pastRelevant = pastMessagesResult.records.map(r => `Relevant past message: ${r.get('content')} (${Math.round(r.get('similarity') * 100)}% similar)`).join('\n');
         }
 
-        // Search for Marianne's skills with native vector search
-        logger.info('Step 3a: Searching for skills nodes...');
-        const skillsResult = await session.run(`
-          CALL db.index.vector.queryNodes('skillEmbedding', $topK, $queryEmbedding)
-          YIELD node AS n, score AS similarity
-          RETURN 'Skill' as nodeType, labels(n) as nodeLabels, n as node, similarity
-        `, { topK: 10, queryEmbedding });
+        // Search for knowledge using GDS-powered similarity search
+        logger.info('Step 3a: Searching for skills nodes with GDS...');
+        const skillsNodes = await this.findSimilarNodesWithGDS(queryEmbedding, 'Skill', 10);
+        const skillProficiencyNodes = await this.findSimilarNodesWithGDS(queryEmbedding, 'SkillProficiency', 10);
         
-        // Also search SkillProficiency nodes
-        const skillProficiencyResult = await session.run(`
-          CALL db.index.vector.queryNodes('skillProficiencyEmbedding', $topK, $queryEmbedding)
-          YIELD node AS n, score AS similarity
-          RETURN 'SkillProficiency' as nodeType, labels(n) as nodeLabels, n as node, similarity
-        `, { topK: 10, queryEmbedding });
-        logger.info(`Step 3a: Found ${skillsResult.records.length + skillProficiencyResult.records.length} skills results.`);
+        // Convert to same format as native vector search for compatibility
+        const skillsResult = { records: skillsNodes.map(n => ({ get: (key) => key === 'nodeType' ? 'Skill' : key === 'nodeLabels' ? ['Skill'] : key === 'node' ? n.node : n.similarity })) };
+        const skillProficiencyResult = { records: skillProficiencyNodes.map(n => ({ get: (key) => key === 'nodeType' ? 'SkillProficiency' : key === 'nodeLabels' ? ['SkillProficiency'] : key === 'node' ? n.node : n.similarity })) };
+        logger.info(`Step 3a: Found ${skillsNodes.length + skillProficiencyNodes.length} skills results with GDS.`);
 
-        // Search for Marianne's jobs with native vector search
-        logger.info('Step 3b: Searching for job/work experience nodes...');
-        const jobResult = await session.run(`
-          CALL db.index.vector.queryNodes('jobEmbedding', $topK, $queryEmbedding)
-          YIELD node AS n, score AS similarity
-          RETURN 'Job' as nodeType, labels(n) as nodeLabels, n as node, similarity
-        `, { topK: 10, queryEmbedding });
-        logger.info(`Step 3b: Found ${jobResult.records.length} job/experience results.`);
+        // Search for Marianne's jobs with GDS
+        logger.info('Step 3b: Searching for job/work experience nodes with GDS...');
+        const jobNodes = await this.findSimilarNodesWithGDS(queryEmbedding, 'Job', 10);
+        const jobResult = { records: jobNodes.map(n => ({ get: (key) => key === 'nodeType' ? 'Job' : key === 'nodeLabels' ? ['Job'] : key === 'node' ? n.node : n.similarity })) };
+        logger.info(`Step 3b: Found ${jobNodes.length} job/experience results with GDS.`);
 
-        // Search for Marianne's education with native vector search
-        logger.info('Step 3c: Searching for education nodes...');
-        const educationResult = await session.run(`
-          CALL db.index.vector.queryNodes('educationEmbedding', $topK, $queryEmbedding)
-          YIELD node AS n, score AS similarity
-          RETURN 'Education' as nodeType, labels(n) as nodeLabels, n as node, similarity
-        `, { topK: 10, queryEmbedding });
-        logger.info(`Step 3c: Found ${educationResult.records.length} education results.`);
+        // Search for Marianne's education with GDS
+        logger.info('Step 3c: Searching for education nodes with GDS...');
+        const educationNodes = await this.findSimilarNodesWithGDS(queryEmbedding, 'Education', 10);
+        const educationResult = { records: educationNodes.map(n => ({ get: (key) => key === 'nodeType' ? 'Education' : key === 'nodeLabels' ? ['Education'] : key === 'node' ? n.node : n.similarity })) };
+        logger.info(`Step 3c: Found ${educationNodes.length} education results with GDS.`);
 
-        // Search for additional Marianne Abrams data (achievements, behavioral examples, etc.)
-        logger.info('Step 3d: Searching for achievements and behavioral examples...');
-        const achievementResult = await session.run(`
-          CALL db.index.vector.queryNodes('achievementEmbedding', $topK, $queryEmbedding)
-          YIELD node AS n, score AS similarity
-          RETURN 'Achievement' as nodeType, labels(n) as nodeLabels, n as node, similarity
-        `, { topK: 10, queryEmbedding });
+        // Search for additional Marianne Abrams data with GDS
+        logger.info('Step 3d: Searching for achievements and behavioral examples with GDS...');
+        const achievementNodes = await this.findSimilarNodesWithGDS(queryEmbedding, 'Achievement', 10);
+        const behavioralNodes = await this.findSimilarNodesWithGDS(queryEmbedding, 'BehavioralExample', 10);
         
-        const behavioralResult = await session.run(`
-          CALL db.index.vector.queryNodes('behavioralEmbedding', $topK, $queryEmbedding)
-          YIELD node AS n, score AS similarity
-          RETURN 'BehavioralExample' as nodeType, labels(n) as nodeLabels, n as node, similarity
-        `, { topK: 10, queryEmbedding });
-        logger.info(`Step 3d: Found ${achievementResult.records.length + behavioralResult.records.length} additional Marianne results.`);
+        const achievementResult = { records: achievementNodes.map(n => ({ get: (key) => key === 'nodeType' ? 'Achievement' : key === 'nodeLabels' ? ['Achievement'] : key === 'node' ? n.node : n.similarity })) };
+        const behavioralResult = { records: behavioralNodes.map(n => ({ get: (key) => key === 'nodeType' ? 'BehavioralExample' : key === 'nodeLabels' ? ['BehavioralExample'] : key === 'node' ? n.node : n.similarity })) };
+        logger.info(`Step 3d: Found ${achievementNodes.length + behavioralNodes.length} additional Marianne results with GDS.`);
         
         // Search for Person node (Marianne Abrams) if query mentions her specifically
         let personResult = { records: [] };
