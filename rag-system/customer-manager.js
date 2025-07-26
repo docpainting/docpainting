@@ -1,10 +1,9 @@
 // customer-manager.js
 // Super Advanced, production-ready module for managing customers, conversations, and advanced classifications in a Neo4j-backed chatbot.
 // Tailored for DOC Painting: Family-owned painting business serving Boston and the South Shore.
-// Enhanced with: Lead scoring based on intents (e.g., priority for quote_requests), precomputed norms for faster APOC cosine similarity, expanded analytics (top services/priorities), Nodemailer integration for high-priority lead emails with customer info link.
+// Enhanced with: Lead scoring based on intents (e.g., priority for quote_requests), precomputed norms for faster cosine similarity, expanded analytics (top services/priorities), Nodemailer integration for high-priority lead emails with customer info link.
 // Updated for OpenRouter integration: Uses OpenRouter API for LLM with Qwen model and custom fallback embeddings.
-// Workaround for Neo4j 4.4 Community Edition: No native vector indexes; uses APOC cosineSimilarity with precomputed norms for optimized semantic searches.
-// Uses standard Cypher queries - no APOC dependencies required
+// Workaround for Neo4j 4.4 Community Edition: No native vector indexes; uses standard Cypher for cosine similarity with precomputed norms for optimized semantic searches.
 // Uses MERGE extensively in Cypher for idempotent operations, avoiding duplicates and handling updates gracefully.
 // Email integration: Uses Nodemailer for sending notifications on high-priority leads; configure via environment variables.
 
@@ -58,7 +57,7 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-// LangChain components (lazy init; no vectorStore, uses APOC for similarity)
+// LangChain components (lazy init; no vectorStore, uses Cypher for similarity)
 let llm;
 let embeddings;
 let graph;
@@ -176,9 +175,19 @@ async function setupCustomerSchema() {
     await tx.run('CREATE INDEX topic_category IF NOT EXISTS FOR (t:Topic) ON (t.category)');
     await tx.run('CREATE INDEX knowledge_timestamp IF NOT EXISTS FOR (k:Knowledge) ON (k.timestamp)');
 
-    // Note: Vector indexes require Neo4j Enterprise Edition
-    // For Community Edition, we'll use property-based similarity search
-    logger.info('Vector indexes skipped (requires Enterprise Edition)');
+    // Native vector indexes for Aura (Enterprise Edition) - correct 512D dimensions
+    await tx.run('CREATE VECTOR INDEX messageEmbedding IF NOT EXISTS FOR (m:Message) ON (m.embedding) OPTIONS {indexConfig: {`vector.dimensions`: 512, `vector.similarity_function`: "cosine"}}');
+    await tx.run('CREATE VECTOR INDEX projectEmbedding IF NOT EXISTS FOR (p:Project) ON (p.embedding) OPTIONS {indexConfig: {`vector.dimensions`: 512, `vector.similarity_function`: "cosine"}}');
+    await tx.run('CREATE VECTOR INDEX materialEmbedding IF NOT EXISTS FOR (m:Material) ON (m.embedding) OPTIONS {indexConfig: {`vector.dimensions`: 512, `vector.similarity_function`: "cosine"}}');
+    await tx.run('CREATE VECTOR INDEX jobEmbedding IF NOT EXISTS FOR (j:Job) ON (j.embedding) OPTIONS {indexConfig: {`vector.dimensions`: 512, `vector.similarity_function`: "cosine"}}');
+    await tx.run('CREATE VECTOR INDEX educationEmbedding IF NOT EXISTS FOR (e:Education) ON (e.embedding) OPTIONS {indexConfig: {`vector.dimensions`: 512, `vector.similarity_function`: "cosine"}}');
+    await tx.run('CREATE VECTOR INDEX skillEmbedding IF NOT EXISTS FOR (s:Skill) ON (s.embedding) OPTIONS {indexConfig: {`vector.dimensions`: 512, `vector.similarity_function`: "cosine"}}');
+    await tx.run('CREATE VECTOR INDEX skillProficiencyEmbedding IF NOT EXISTS FOR (s:SkillProficiency) ON (s.embedding) OPTIONS {indexConfig: {`vector.dimensions`: 512, `vector.similarity_function`: "cosine"}}');
+    await tx.run('CREATE VECTOR INDEX achievementEmbedding IF NOT EXISTS FOR (a:Achievement) ON (a.embedding) OPTIONS {indexConfig: {`vector.dimensions`: 512, `vector.similarity_function`: "cosine"}}');
+    await tx.run('CREATE VECTOR INDEX behavioralEmbedding IF NOT EXISTS FOR (b:BehavioralExample) ON (b.embedding) OPTIONS {indexConfig: {`vector.dimensions`: 512, `vector.similarity_function`: "cosine"}}');
+    await tx.run('CREATE VECTOR INDEX colorEmbedding IF NOT EXISTS FOR (c:Color) ON (c.embedding) OPTIONS {indexConfig: {`vector.dimensions`: 512, `vector.similarity_function`: "cosine"}}');
+    await tx.run('CREATE VECTOR INDEX codeComponentEmbedding IF NOT EXISTS FOR (c:CodeComponent) ON (c.embedding) OPTIONS {indexConfig: {`vector.dimensions`: 512, `vector.similarity_function`: "cosine"}}');
+    logger.info('Native vector indexes created (Aura-enabled)');
 
     await tx.commit();
     logger.info('✓ Advanced schema created successfully');
@@ -331,14 +340,13 @@ class CustomerManager {
     try {
       const rawEmbedding = await embeddings.embedQuery(content);
       const embedding = this.validateEmbedding(rawEmbedding);
-      const norm = Math.sqrt(embedding.reduce((sum, val) => sum + val * val, 0)); // Precompute norm for faster cosine
       
       await this._runInTx(`
         MATCH (m:Message {id: $messageId})
-        SET m.embedding = $embedding, m.embedding_norm = $norm, m.embedding_dims = $dims
-      `, { messageId, embedding, norm, dims: embedding.length });
+        SET m.embedding = $embedding, m.embedding_dims = $dims
+      `, { messageId, embedding, dims: embedding.length });
       
-      logger.info(`Added embedding (${embedding.length}D) and norm to message: ${messageId}`);
+      logger.info(`Added embedding (${embedding.length}D) to message: ${messageId}`);
     } catch (error) {
       logger.error('Error adding embedding:', error);
     }
@@ -542,99 +550,146 @@ class CustomerManager {
       
       // Get conversation history for context
       logger.info('Step 1: Getting conversation history...');
-      logger.info(`Executing Neo4j query: MATCH (conv:Conversation {id: $conversationId})-[:CONTAINS_MESSAGE]->(m:Message)...`);
       const history = await this.getConversationHistory(conversationId, 10);
-      logger.info(`Neo4j query executed: MATCH (conv:Conversation {id: $conversationId})-[:CONTAINS_MESSAGE]->(m:Message)`);
-      logger.info('Step 1: History retrieved.');
       const historyContext = history.map(m => `${m.sender}: ${m.content}`).join('\n');
 
       // Generate embedding for the query
       logger.info('Step 2: Generating query embedding...');
       const queryEmbedding = await embeddings.embedQuery(query);
-      logger.info('Step 2: Embedding generated.');
+      const queryNorm = Math.sqrt(queryEmbedding.reduce((sum, val) => sum + val * val, 0));
       
       // Search Neo4j knowledge base using semantic similarity
       logger.info('Step 3: Starting Neo4j search session...');
       const session = this.driver.session({ database: process.env.NEO4J_DATABASE });
       try {
-        // Search for DOC Painting projects and materials
-        logger.info('Step 3a: Searching for projects and materials...');
-        logger.info(`Executing Neo4j query: MATCH (p:Project)...`);
-        const projectResult = await session.run(`
-          MATCH (p:Project)
-          RETURN 'Project' as nodeType, labels(p) as nodeLabels, p as node, 0.8 as similarity
-          LIMIT 5
-        `);
-        logger.info(`Neo4j query executed: MATCH (p:Project)`);
-        logger.info(`Step 3a: Found ${projectResult.records.length} project results.`);
+        // Get customer UUID
+        const customerResult = await session.run(`
+          MATCH (c:Customer)-[:HAS_CONVERSATION]->(conv:Conversation {id: $conversationId})
+          RETURN c.uuid as customerUuid
+        `, { conversationId });
+        const customerUuid = customerResult.records.length > 0 ? customerResult.records[0].get('customerUuid') : null;
 
-        // Search for DOC Painting materials and techniques
-        logger.info('Step 3b: Searching for materials and techniques...');
-        logger.info(`Executing Neo4j query: MATCH (m:Material)...`);
-        const materialResult = await session.run(`
-          MATCH (m:Material)
-          RETURN 'Material' as nodeType, labels(m) as nodeLabels, m as node, 0.8 as similarity
-          LIMIT 5
-        `);
-        logger.info(`Neo4j query executed: MATCH (m:Material)`);
-        logger.info(`Step 3b: Found ${materialResult.records.length} material results.`);
+        let pastContext = '';
+        let pastRelevant = '';
+        if (customerUuid) {
+          // Get past conversation summaries
+          const pastConvs = await this.getCustomerConversations(customerUuid);
+          pastContext = pastConvs
+            .filter(conv => conv.id !== conversationId && conv.summary)
+            .map(conv => `Past conversation summary (${conv.started_at}): ${conv.summary}`)
+            .join('\n\n');
 
-        // Search for Marianne Abrams professional data
-        let marianneResult = { records: [] };
+          // Search for similar past messages
+          const pastMessagesResult = await session.run(`
+            MATCH (c:Customer {uuid: $customerUuid})-[:HAS_CONVERSATION]->(conv:Conversation)-[:CONTAINS_MESSAGE]->(m:Message)
+            WHERE conv.id <> $conversationId AND m.embedding IS NOT NULL AND m.embedding_norm IS NOT NULL
+            WITH m, 
+              reduce(dot = 0.0, i in range(0, size(m.embedding)-1) | dot + m.embedding[i] * $queryEmbedding[i]) AS dotProduct,
+              m.embedding_norm AS nodeNorm
+            WITH m, dotProduct / (nodeNorm * $queryNorm) AS similarity
+            WHERE similarity > $threshold
+            RETURN m.content as content, similarity
+            ORDER BY similarity DESC
+            LIMIT 5
+          `, { customerUuid, conversationId, queryEmbedding, queryNorm, threshold: 0.7 });
+          pastRelevant = pastMessagesResult.records.map(r => `Relevant past message: ${r.get('content')} (${Math.round(r.get('similarity') * 100)}% similar)`).join('\n');
+        }
+
+        // Search for Marianne's skills with native vector search
+        logger.info('Step 3a: Searching for skills nodes...');
+        const skillsResult = await session.run(`
+          CALL db.index.vector.queryNodes('skillEmbedding', $topK, $queryEmbedding)
+          YIELD node AS n, score AS similarity
+          RETURN 'Skill' as nodeType, labels(n) as nodeLabels, n as node, similarity
+        `, { topK: 10, queryEmbedding });
+        
+        // Also search SkillProficiency nodes
+        const skillProficiencyResult = await session.run(`
+          CALL db.index.vector.queryNodes('skillProficiencyEmbedding', $topK, $queryEmbedding)
+          YIELD node AS n, score AS similarity
+          RETURN 'SkillProficiency' as nodeType, labels(n) as nodeLabels, n as node, similarity
+        `, { topK: 10, queryEmbedding });
+        logger.info(`Step 3a: Found ${skillsResult.records.length + skillProficiencyResult.records.length} skills results.`);
+
+        // Search for Marianne's jobs with native vector search
+        logger.info('Step 3b: Searching for job/work experience nodes...');
+        const jobResult = await session.run(`
+          CALL db.index.vector.queryNodes('jobEmbedding', $topK, $queryEmbedding)
+          YIELD node AS n, score AS similarity
+          RETURN 'Job' as nodeType, labels(n) as nodeLabels, n as node, similarity
+        `, { topK: 10, queryEmbedding });
+        logger.info(`Step 3b: Found ${jobResult.records.length} job/experience results.`);
+
+        // Search for Marianne's education with native vector search
+        logger.info('Step 3c: Searching for education nodes...');
+        const educationResult = await session.run(`
+          CALL db.index.vector.queryNodes('educationEmbedding', $topK, $queryEmbedding)
+          YIELD node AS n, score AS similarity
+          RETURN 'Education' as nodeType, labels(n) as nodeLabels, n as node, similarity
+        `, { topK: 10, queryEmbedding });
+        logger.info(`Step 3c: Found ${educationResult.records.length} education results.`);
+
+        // Search for additional Marianne Abrams data (achievements, behavioral examples, etc.)
+        logger.info('Step 3d: Searching for achievements and behavioral examples...');
+        const achievementResult = await session.run(`
+          CALL db.index.vector.queryNodes('achievementEmbedding', $topK, $queryEmbedding)
+          YIELD node AS n, score AS similarity
+          RETURN 'Achievement' as nodeType, labels(n) as nodeLabels, n as node, similarity
+        `, { topK: 10, queryEmbedding });
+        
+        const behavioralResult = await session.run(`
+          CALL db.index.vector.queryNodes('behavioralEmbedding', $topK, $queryEmbedding)
+          YIELD node AS n, score AS similarity
+          RETURN 'BehavioralExample' as nodeType, labels(n) as nodeLabels, n as node, similarity
+        `, { topK: 10, queryEmbedding });
+        logger.info(`Step 3d: Found ${achievementResult.records.length + behavioralResult.records.length} additional Marianne results.`);
+        
+        // Search for Person node (Marianne Abrams) if query mentions her specifically
+        let personResult = { records: [] };
         const lowerQuery = query.toLowerCase();
-        logger.info('Step 3c: Checking for Marianne query...');
-        if (lowerQuery.includes('marianne') || lowerQuery.includes('abrams') ||
-            lowerQuery.includes('school') || lowerQuery.includes('college') ||
-            lowerQuery.includes('education') || lowerQuery.includes('work') ||
-            lowerQuery.includes('job') || lowerQuery.includes('experience') ||
-            lowerQuery.includes('skill') || lowerQuery.includes('resume')) {
-          logger.info(`Executing Neo4j query: MATCH (p:Person {name: 'Marianne Abrams'})-[:HAS_CONVERSATION]->(conv:Conversation)...`);
-          marianneResult = await session.run(`
-            MATCH (p:Person {name: 'Marianne Abrams'})-[r]->(related)
-            RETURN 
-              labels(related)[0] as nodeType,
-              labels(related) as nodeLabels,
-              related as node,
-              0.9 as similarity
-            LIMIT 50
+        if (lowerQuery.includes('marianne') || lowerQuery.includes('abrams')) {
+          logger.info('Step 3e: Searching for Marianne Person node...');
+          personResult = await session.run(`
+            MATCH (p:Person {name: 'Marianne Abrams'})
+            RETURN 'Person' as nodeType, labels(p) as nodeLabels, p as node, 1.0 as similarity
           `);
-          logger.info(`Neo4j query executed: MATCH (p:Person {name: 'Marianne Abrams'})-[:HAS_CONVERSATION]->(conv:Conversation)`);
-          logger.info(`Step 3c: Found ${marianneResult.records.length} Marianne results.`);
+          logger.info(`Step 3e: Found ${personResult.records.length} person results.`);
         }
         
-        // Fallback: If no semantic matches, use keyword search
+        // Fallback: If no semantic matches, use keyword search for Marianne data
         let fallbackResults = [];
-        if (projectResult.records.length === 0 && materialResult.records.length === 0 && marianneResult.records.length === 0) {
+        const totalSemanticResults = skillsResult.records.length + skillProficiencyResult.records.length + jobResult.records.length + educationResult.records.length + achievementResult.records.length + behavioralResult.records.length + personResult.records.length;
+        if (totalSemanticResults === 0) {
           const searchTerm = this.extractKeywordsFromMessage(query);
-          logger.info('Step 3d: Searching for projects using keyword search...');
-          logger.info(`Executing Neo4j query: MATCH (p:Project)...`);
-          const fallbackProjectResult = await session.run(`
-            MATCH (p:Project)
-            WHERE toLower(p.description) CONTAINS toLower($searchTerm) OR toLower(p.type) CONTAINS toLower($searchTerm)
-            RETURN 'Project' as nodeType, labels(p) as nodeLabels, p as node, 0.5 as similarity
-            LIMIT 3
+          logger.info('Step 4: Fallback keyword search for resume data...');
+          const fallbackSkillsResult = await session.run(`
+            MATCH (n)
+            WHERE any(label in labels(n) WHERE label IN ['Skill', 'Skills'])
+              AND (toLower(n.name) CONTAINS toLower($searchTerm) OR toLower(n.description) CONTAINS toLower($searchTerm))
+            RETURN 'Skill' as nodeType, labels(n) as nodeLabels, n as node, 0.5 as similarity
+            LIMIT 5
           `, { searchTerm });
-          logger.info(`Neo4j query executed: MATCH (p:Project)`);
-          logger.info('Step 3d: Searching for materials using keyword search...');
-          logger.info(`Executing Neo4j query: MATCH (m:Material)...`);
-          const fallbackMaterialResult = await session.run(`
-            MATCH (m:Material)
-            WHERE m.name IS NOT NULL AND toLower(m.name) CONTAINS toLower($searchTerm)
-            RETURN 'Material' as nodeType, labels(m) as nodeLabels, m as node, 0.5 as similarity
-            LIMIT 3
+          const fallbackJobResult = await session.run(`
+            MATCH (n)
+            WHERE any(label in labels(n) WHERE label IN ['Job', 'Work', 'Experience', 'Employment', 'Position'])
+              AND (toLower(n.title) CONTAINS toLower($searchTerm) OR toLower(n.company) CONTAINS toLower($searchTerm) OR toLower(n.description) CONTAINS toLower($searchTerm))
+            RETURN labels(n)[0] as nodeType, labels(n) as nodeLabels, n as node, 0.5 as similarity
+            LIMIT 5
           `, { searchTerm });
-          logger.info(`Neo4j query executed: MATCH (m:Material)`);
-          fallbackResults = [...fallbackProjectResult.records, ...fallbackMaterialResult.records];
+          fallbackResults = [...fallbackSkillsResult.records, ...fallbackJobResult.records];
+          logger.info(`Step 4: Found ${fallbackResults.length} fallback results.`);
         }
         
         // Combine results (semantic + fallback)
-        const combinedResults = [...projectResult.records, ...materialResult.records, ...marianneResult.records, ...fallbackResults];
+        const combinedResults = [...skillsResult.records, ...skillProficiencyResult.records, ...jobResult.records, ...educationResult.records, ...achievementResult.records, ...behavioralResult.records, ...personResult.records, ...fallbackResults];
         logger.info(`Step 4: Total knowledge items found: ${combinedResults.length}`);
-        const knowledgeItems = combinedResults.map(record => this.formatNodeForAI(record.get('node'), record.get('similarity'), record.get('nodeType')));
+        let knowledgeItems = combinedResults.map(record => this.formatNodeForAI(record.get('node'), record.get('similarity'), record.get('nodeType'))).join('\n\n---\n\n');
+        if (pastRelevant) {
+          knowledgeItems += '\n\n---\n\n' + pastRelevant;
+        }
+
         logger.info('Step 5: Calling LLM for final response...');
-        logger.info(`Executing LLM query: ${query}...`);
-        const aiResponse = await this._getAIResponse(historyContext, query, knowledgeItems.join('\n\n---\n\n'));
-        logger.info(`LLM query executed: ${query}`);
+        const aiResponse = await this._getAIResponse(historyContext, query, knowledgeItems, pastContext);
         logger.info('Step 5: LLM response received.');
         
         // Store AI response in conversation
@@ -662,7 +717,7 @@ class CustomerManager {
     
     if (nodeType === 'Color') {
       const props = Object.entries(node.properties || {})
-        .filter(([key, value]) => value && key !== 'created_at' && key !== 'updated_at' && key !== 'embedding')
+        .filter(([key, value]) => value && key !== 'created_at' && key !== 'updated_at' && key !== 'embedding' && key !== 'embedding_norm')
         .map(([key, value]) => `${key}: ${value}`)
         .join(', ');
       return `Color: ${props} ${confidence}`;
@@ -701,7 +756,7 @@ class CustomerManager {
       return `BehavioralExample: ${type} - ${situation} → ${result} ${confidence}`;
     } else {
       const props = Object.entries(node.properties || {})
-        .filter(([key, value]) => value && key !== 'created_at' && key !== 'updated_at' && key !== 'embedding' && !Array.isArray(value))
+        .filter(([key, value]) => value && key !== 'created_at' && key !== 'updated_at' && key !== 'embedding' && key !== 'embedding_norm' && !Array.isArray(value))
         .map(([key, value]) => `${key}: ${value}`)
         .join(', ');
       return `${nodeType}: ${props} ${confidence}`;
@@ -716,6 +771,59 @@ class CustomerManager {
       const session = this.driver.session();
       
       try {
+        // Get all Project nodes without embeddings
+        const projectResult = await session.run(`
+          MATCH (p:Project)
+          WHERE p.embedding IS NULL
+          RETURN p.name as name, p.type as type, p.description as description, elementId(p) as id
+          LIMIT 100
+        `);
+        
+        for (const record of projectResult.records) {
+          const name = record.get('name') || '';
+          const type = record.get('type') || '';
+          const description = record.get('description') || '';
+          const id = record.get('id');
+          
+          const text = `${name} ${type} ${description}`.trim();
+          if (text) {
+            const rawEmbedding = await embeddings.embedQuery(text);
+            const embedding = this.validateEmbedding(rawEmbedding);
+            await session.run(`
+              MATCH (p:Project)
+              WHERE elementId(p) = $id
+              SET p.embedding = $embedding, p.embedding_dims = $dims
+            `, { id, embedding, dims: embedding.length });
+            logger.info(`Generated embedding (${embedding.length}D) for project: ${name}`);
+          }
+        }
+
+        // Get all Material nodes without embeddings
+        const materialResult = await session.run(`
+          MATCH (m:Material)
+          WHERE m.embedding IS NULL
+          RETURN m.name as name, m.description as description, elementId(m) as id
+          LIMIT 100
+        `);
+        
+        for (const record of materialResult.records) {
+          const name = record.get('name') || '';
+          const description = record.get('description') || '';
+          const id = record.get('id');
+          
+          const text = `${name} ${description}`.trim();
+          if (text) {
+            const rawEmbedding = await embeddings.embedQuery(text);
+            const embedding = this.validateEmbedding(rawEmbedding);
+            await session.run(`
+              MATCH (m:Material)
+              WHERE elementId(m) = $id
+              SET m.embedding = $embedding, m.embedding_dims = $dims
+            `, { id, embedding, dims: embedding.length });
+            logger.info(`Generated embedding (${embedding.length}D) for material: ${name}`);
+          }
+        }
+
         // Get all Color nodes without embeddings
         const colorResult = await session.run(`
           MATCH (c:Color)
@@ -730,7 +838,6 @@ class CustomerManager {
           const description = record.get('description') || '';
           const id = record.get('id');
           
-          // Create text for embedding
           const text = `${name} ${category} ${description}`.trim();
           if (text) {
             const rawEmbedding = await embeddings.embedQuery(text);
@@ -758,7 +865,6 @@ class CustomerManager {
           const type = record.get('type') || '';
           const id = record.get('id');
           
-          // Create text for embedding
           const text = `${name} ${type} ${description}`.trim();
           if (text) {
             const rawEmbedding = await embeddings.embedQuery(text);
@@ -769,6 +875,150 @@ class CustomerManager {
               SET c.embedding = $embedding, c.embedding_dims = $dims
             `, { id, embedding, dims: embedding.length });
             logger.info(`Generated embedding (${embedding.length}D) for code component: ${name}`);
+          }
+        }
+
+        // Get all Job nodes without embeddings
+        const jobResult = await session.run(`
+          MATCH (j:Job)
+          WHERE j.embedding IS NULL
+          RETURN j.company as company, j.title as title, j.duration as duration, j.description as description, j.location as location, elementId(j) as id
+          LIMIT 100
+        `);
+        
+        for (const record of jobResult.records) {
+          const company = record.get('company') || '';
+          const title = record.get('title') || '';
+          const duration = record.get('duration') || '';
+          const description = record.get('description') || '';
+          const location = record.get('location') || '';
+          const id = record.get('id');
+          
+          const text = `${title} ${company} ${duration} ${location} ${description}`.trim();
+          if (text) {
+            const rawEmbedding = await embeddings.embedQuery(text);
+            const embedding = this.validateEmbedding(rawEmbedding);
+            const norm = Math.sqrt(embedding.reduce((sum, val) => sum + val * val, 0));
+            await session.run(`
+              MATCH (j:Job)
+              WHERE elementId(j) = $id
+              SET j.embedding = $embedding, j.embedding_norm = $norm, j.embedding_dims = $dims
+            `, { id, embedding, norm, dims: embedding.length });
+            logger.info(`Generated embedding (${embedding.length}D) for job: ${title}`);
+          }
+        }
+
+        // Get all Education nodes without embeddings
+        const educationResult = await session.run(`
+          MATCH (e:Education)
+          WHERE e.embedding IS NULL
+          RETURN e.institution as institution, e.degree_type as degree_type, e.field_of_study as field_of_study, e.duration as duration, elementId(e) as id
+          LIMIT 100
+        `);
+        
+        for (const record of educationResult.records) {
+          const institution = record.get('institution') || '';
+          const degree_type = record.get('degree_type') || '';
+          const field_of_study = record.get('field_of_study') || '';
+          const duration = record.get('duration') || '';
+          const id = record.get('id');
+          
+          const text = `${degree_type} ${field_of_study} ${institution} ${duration}`.trim();
+          if (text) {
+            const rawEmbedding = await embeddings.embedQuery(text);
+            const embedding = this.validateEmbedding(rawEmbedding);
+            const norm = Math.sqrt(embedding.reduce((sum, val) => sum + val * val, 0));
+            await session.run(`
+              MATCH (e:Education)
+              WHERE elementId(e) = $id
+              SET e.embedding = $embedding, e.embedding_norm = $norm, e.embedding_dims = $dims
+            `, { id, embedding, norm, dims: embedding.length });
+            logger.info(`Generated embedding (${embedding.length}D) for education: ${degree_type}`);
+          }
+        }
+
+        // Get all SkillProficiency nodes without embeddings
+        const skillResult = await session.run(`
+          MATCH (s:SkillProficiency)
+          WHERE s.embedding IS NULL
+          RETURN s.skill_name as skill_name, s.proficiency_level as proficiency_level, s.years_experience as years_experience, s.description as description, elementId(s) as id
+          LIMIT 100
+        `);
+        
+        for (const record of skillResult.records) {
+          const skill_name = record.get('skill_name') || '';
+          const proficiency_level = record.get('proficiency_level') || '';
+          const years_experience = record.get('years_experience') || '';
+          const description = record.get('description') || '';
+          const id = record.get('id');
+          
+          const text = `${skill_name} ${proficiency_level} ${years_experience} ${description}`.trim();
+          if (text) {
+            const rawEmbedding = await embeddings.embedQuery(text);
+            const embedding = this.validateEmbedding(rawEmbedding);
+            const norm = Math.sqrt(embedding.reduce((sum, val) => sum + val * val, 0));
+            await session.run(`
+              MATCH (s:SkillProficiency)
+              WHERE elementId(s) = $id
+              SET s.embedding = $embedding, s.embedding_norm = $norm, s.embedding_dims = $dims
+            `, { id, embedding, norm, dims: embedding.length });
+            logger.info(`Generated embedding (${embedding.length}D) for skill: ${skill_name}`);
+          }
+        }
+
+        // Get all Achievement nodes without embeddings
+        const achievementResult = await session.run(`
+          MATCH (a:Achievement)
+          WHERE a.embedding IS NULL
+          RETURN a.metric as metric, a.value as value, a.context as context, elementId(a) as id
+          LIMIT 100
+        `);
+        
+        for (const record of achievementResult.records) {
+          const metric = record.get('metric') || '';
+          const value = record.get('value') || '';
+          const context = record.get('context') || '';
+          const id = record.get('id');
+          
+          const text = `${metric} ${value} ${context}`.trim();
+          if (text) {
+            const rawEmbedding = await embeddings.embedQuery(text);
+            const embedding = this.validateEmbedding(rawEmbedding);
+            const norm = Math.sqrt(embedding.reduce((sum, val) => sum + val * val, 0));
+            await session.run(`
+              MATCH (a:Achievement)
+              WHERE elementId(a) = $id
+              SET a.embedding = $embedding, a.embedding_norm = $norm, a.embedding_dims = $dims
+            `, { id, embedding, norm, dims: embedding.length });
+            logger.info(`Generated embedding (${embedding.length}D) for achievement: ${metric}`);
+          }
+        }
+
+        // Get all BehavioralExample nodes without embeddings
+        const behavioralResult = await session.run(`
+          MATCH (b:BehavioralExample)
+          WHERE b.embedding IS NULL
+          RETURN b.type as type, b.situation as situation, b.result as result, elementId(b) as id
+          LIMIT 100
+        `);
+        
+        for (const record of behavioralResult.records) {
+          const type = record.get('type') || '';
+          const situation = record.get('situation') || '';
+          const result = record.get('result') || '';
+          const id = record.get('id');
+          
+          const text = `${type} ${situation} ${result}`.trim();
+          if (text) {
+            const rawEmbedding = await embeddings.embedQuery(text);
+            const embedding = this.validateEmbedding(rawEmbedding);
+            const norm = Math.sqrt(embedding.reduce((sum, val) => sum + val * val, 0));
+            await session.run(`
+              MATCH (b:BehavioralExample)
+              WHERE elementId(b) = $id
+              SET b.embedding = $embedding, b.embedding_norm = $norm, b.embedding_dims = $dims
+            `, { id, embedding, norm, dims: embedding.length });
+            logger.info(`Generated embedding (${embedding.length}D) for behavioral example: ${type}`);
           }
         }
         
@@ -813,7 +1063,7 @@ class CustomerManager {
   }
 
   // Generate AI response using OpenRouter LLM
-  async _getAIResponse(historyContext, query, knowledgeContext) {
+  async _getAIResponse(historyContext, query, knowledgeContext, pastContext = '') {
     const enhancedPrompt = `You are an intelligent assistant for DOC Painting, a family-owned painting business serving Boston and the South Shore.
 
 You can help with:
@@ -836,6 +1086,9 @@ You can help with:
 Relevant knowledge from database:
 ${knowledgeContext}
 
+Past conversation summaries:
+${pastContext}
+
 Conversation history:
 ${historyContext}
 
@@ -844,7 +1097,7 @@ Customer question: ${query}
 INSTRUCTIONS:
 - If asked about DOC Painting services, colors, or projects: Respond professionally with detailed painting information and offer to connect them with our team.
 - If asked about Marianne Abrams: Provide accurate information from the knowledge base about her professional background, education, work experience, and qualifications.
-- Use the knowledge base information to provide accurate, detailed answers with specific details when relevant.
+- Use the knowledge base information and past conversation summaries to provide accurate, detailed answers with specific details when relevant.
 - Be helpful, professional, and informative.`;
 
     const response = await llm.invoke(enhancedPrompt);
