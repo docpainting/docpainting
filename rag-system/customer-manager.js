@@ -35,7 +35,7 @@ const logger = winston.createLogger({
 
 // Neo4j driver
 const driver = neo4j.driver(
-  process.env.NEO4J_URI || 'neo4j+s://c148cb1a.databases.neo4j.io',
+  process.env.NEO4J_URI || 'neo4j+s://256fce48.databases.neo4j.io',
   neo4j.auth.basic(process.env.NEO4J_USERNAME || 'neo4j', process.env.NEO4J_PASSWORD || 'XoGzplIp-V7_VmtNQhfeCB6qSwplcqbBsdKGzfsldyY'),
   {
     maxConnectionLifetime: 3 * 60 * 60 * 1000,
