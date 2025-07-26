@@ -22,24 +22,30 @@ exports.handler = async (event, context) => {
     };
     
     // Test customer creation
+    let testCustomer;
     try {
-      const testCustomer = await customerManager.createCustomer('test@example.com', 'Test User');
+      testCustomer = await customerManager.createOrGetCustomer('test@example.com', { name: 'Test User' });
       testResults.customerCreation = 'SUCCESS';
-      testResults.customerId = testCustomer.id;
+      testResults.customerId = testCustomer.uuid;
     } catch (error) {
       testResults.customerCreation = 'FAILED';
       testResults.customerError = error.message;
     }
     
     // Test a simple query
-    try {
-      const testQuery = 'Hello';
-      const response = await customerManager.handleQuery(testCustomer.id, testQuery);
-      testResults.queryHandling = 'SUCCESS';
-      testResults.queryResponse = response ? 'Got response' : 'No response';
-    } catch (error) {
-      testResults.queryHandling = 'FAILED';
-      testResults.queryError = error.message;
+    if (testCustomer) {
+      try {
+        const testQuery = 'Hello';
+        const response = await customerManager.handleQuery(testCustomer.uuid, testQuery);
+        testResults.queryHandling = 'SUCCESS';
+        testResults.queryResponse = response ? 'Got response' : 'No response';
+      } catch (error) {
+        testResults.queryHandling = 'FAILED';
+        testResults.queryError = error.message;
+      }
+    } else {
+      testResults.queryHandling = 'SKIPPED';
+      testResults.queryError = 'No customer to test with';
     }
     
     return {
