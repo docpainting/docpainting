@@ -223,7 +223,7 @@ class CustomerManager {
 
   // Helper: Run query in transaction
   async _runInTx(query, params, mode = 'WRITE') {
-    const session = this.driver.session({ defaultAccessMode: neo4j.session[mode] });
+    const session = this.driver.session({ database: process.env.NEO4J_DATABASE, defaultAccessMode: neo4j.session[mode] });
     const tx = session.beginTransaction();
     try {
       const result = await tx.run(query, params);
@@ -555,7 +555,7 @@ class CustomerManager {
       
       // Search Neo4j knowledge base using semantic similarity
       logger.info('Step 3: Starting Neo4j search session...');
-      const session = this.driver.session();
+      const session = this.driver.session({ database: process.env.NEO4J_DATABASE });
       try {
         // Search for DOC Painting projects and materials
         logger.info('Step 3a: Searching for projects and materials...');
