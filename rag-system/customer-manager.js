@@ -914,7 +914,10 @@ INSTRUCTIONS:
   }
 }
 
-module.exports = { setupCustomerSchema, CustomerManager };
+// Export CustomerManager as default export for Netlify compatibility
+module.exports = CustomerManager;
+// Also export setupCustomerSchema as a property for backward compatibility
+module.exports.setupCustomerSchema = setupCustomerSchema;
 
 // Run schema setup if called directly
 if (require.main === module) {

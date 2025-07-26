@@ -2,8 +2,8 @@
 // Netlify Function wrapper for DOC Painting RAG system
 // Handles customer chat requests via serverless function
 
-// Import CustomerManager with explicit destructuring
-const { CustomerManager } = require('../../rag-system/customer-manager');
+// Import CustomerManager as default export (Netlify compatible)
+const CustomerManager = require('../../rag-system/customer-manager');
 
 // Validate CustomerManager is properly imported
 if (typeof CustomerManager !== 'function') {
