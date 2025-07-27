@@ -678,35 +678,52 @@ class CustomerManager {
           pastRelevant = pastMessagesResult.records.map(r => `Relevant past message: ${r.get('content')} (${Math.round(r.get('similarity') * 100)}% similar)`).join('\n');
         }
 
-        // Search for knowledge using GDS-powered similarity search
-        logger.info('Step 3a: Searching for skills nodes with GDS...');
-        const skillsNodes = await this.findSimilarNodesWithGDS(queryEmbedding, 'Skill', 10);
-        const skillProficiencyNodes = await this.findSimilarNodesWithGDS(queryEmbedding, 'SkillProficiency', 10);
+        // Use RELIABLE native vector search for production (GDS fallback if needed)
+        logger.info('Step 3a: Searching for skills nodes with RELIABLE native vector search...');
+        const skillsResult = await session.run(`
+          CALL db.index.vector.queryNodes('skillEmbedding', $topK, $queryEmbedding)
+          YIELD node AS n, score AS similarity
+          RETURN 'Skill' as nodeType, labels(n) as nodeLabels, n as node, similarity
+        `, { topK: 10, queryEmbedding });
         
-        // Convert to same format as native vector search for compatibility
-        const skillsResult = { records: skillsNodes.map(n => ({ get: (key) => key === 'nodeType' ? 'Skill' : key === 'nodeLabels' ? ['Skill'] : key === 'node' ? n.node : n.similarity })) };
-        const skillProficiencyResult = { records: skillProficiencyNodes.map(n => ({ get: (key) => key === 'nodeType' ? 'SkillProficiency' : key === 'nodeLabels' ? ['SkillProficiency'] : key === 'node' ? n.node : n.similarity })) };
-        logger.info(`Step 3a: Found ${skillsNodes.length + skillProficiencyNodes.length} skills results with GDS.`);
+        const skillProficiencyResult = await session.run(`
+          CALL db.index.vector.queryNodes('skillProficiencyEmbedding', $topK, $queryEmbedding)
+          YIELD node AS n, score AS similarity
+          RETURN 'SkillProficiency' as nodeType, labels(n) as nodeLabels, n as node, similarity
+        `, { topK: 10, queryEmbedding });
+        logger.info(`Step 3a: Found ${skillsResult.records.length + skillProficiencyResult.records.length} skills results.`);
 
-        // Search for Marianne's jobs with GDS
-        logger.info('Step 3b: Searching for job/work experience nodes with GDS...');
-        const jobNodes = await this.findSimilarNodesWithGDS(queryEmbedding, 'Job', 10);
-        const jobResult = { records: jobNodes.map(n => ({ get: (key) => key === 'nodeType' ? 'Job' : key === 'nodeLabels' ? ['Job'] : key === 'node' ? n.node : n.similarity })) };
-        logger.info(`Step 3b: Found ${jobNodes.length} job/experience results with GDS.`);
+        // Search for Marianne's jobs with RELIABLE native vector search
+        logger.info('Step 3b: Searching for job/work experience nodes...');
+        const jobResult = await session.run(`
+          CALL db.index.vector.queryNodes('jobEmbedding', $topK, $queryEmbedding)
+          YIELD node AS n, score AS similarity
+          RETURN 'Job' as nodeType, labels(n) as nodeLabels, n as node, similarity
+        `, { topK: 10, queryEmbedding });
+        logger.info(`Step 3b: Found ${jobResult.records.length} job/experience results.`);
 
-        // Search for Marianne's education with GDS
-        logger.info('Step 3c: Searching for education nodes with GDS...');
-        const educationNodes = await this.findSimilarNodesWithGDS(queryEmbedding, 'Education', 10);
-        const educationResult = { records: educationNodes.map(n => ({ get: (key) => key === 'nodeType' ? 'Education' : key === 'nodeLabels' ? ['Education'] : key === 'node' ? n.node : n.similarity })) };
-        logger.info(`Step 3c: Found ${educationNodes.length} education results with GDS.`);
+        // Search for Marianne's education with RELIABLE native vector search
+        logger.info('Step 3c: Searching for education nodes...');
+        const educationResult = await session.run(`
+          CALL db.index.vector.queryNodes('educationEmbedding', $topK, $queryEmbedding)
+          YIELD node AS n, score AS similarity
+          RETURN 'Education' as nodeType, labels(n) as nodeLabels, n as node, similarity
+        `, { topK: 10, queryEmbedding });
+        logger.info(`Step 3c: Found ${educationResult.records.length} education results.`);
 
-        // Search for additional Marianne Abrams data with GDS
-        logger.info('Step 3d: Searching for achievements and behavioral examples with GDS...');
-        const achievementNodes = await this.findSimilarNodesWithGDS(queryEmbedding, 'Achievement', 10);
-        const behavioralNodes = await this.findSimilarNodesWithGDS(queryEmbedding, 'BehavioralExample', 10);
+        // Search for additional Marianne Abrams data with RELIABLE native vector search
+        logger.info('Step 3d: Searching for achievements and behavioral examples...');
+        const achievementResult = await session.run(`
+          CALL db.index.vector.queryNodes('achievementEmbedding', $topK, $queryEmbedding)
+          YIELD node AS n, score AS similarity
+          RETURN 'Achievement' as nodeType, labels(n) as nodeLabels, n as node, similarity
+        `, { topK: 10, queryEmbedding });
         
-        const achievementResult = { records: achievementNodes.map(n => ({ get: (key) => key === 'nodeType' ? 'Achievement' : key === 'nodeLabels' ? ['Achievement'] : key === 'node' ? n.node : n.similarity })) };
-        const behavioralResult = { records: behavioralNodes.map(n => ({ get: (key) => key === 'nodeType' ? 'BehavioralExample' : key === 'nodeLabels' ? ['BehavioralExample'] : key === 'node' ? n.node : n.similarity })) };
+        const behavioralResult = await session.run(`
+          CALL db.index.vector.queryNodes('behavioralEmbedding', $topK, $queryEmbedding)
+          YIELD node AS n, score AS similarity
+          RETURN 'BehavioralExample' as nodeType, labels(n) as nodeLabels, n as node, similarity
+        `, { topK: 10, queryEmbedding });
         logger.info(`Step 3d: Found ${achievementNodes.length + behavioralNodes.length} additional Marianne results with GDS.`);
         
         // Search for Person node (Marianne Abrams) if query mentions her specifically
