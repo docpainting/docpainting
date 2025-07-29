@@ -8,6 +8,7 @@
     "dev": "nodemon server.js"
   },
   "dependencies": {
+    "@huggingface/inference": "^2.8.1",
     "@langchain/community": "^0.0.38",
     "@langchain/openai": "^0.0.28",
     "axios": "^1.6.0",

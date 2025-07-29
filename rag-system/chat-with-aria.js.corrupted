@@ -25,188 +25,6 @@
 const neo4j = require('neo4j-driver');
 const { v4: uuidv4 } = require('uuid');
 const { ChatOpenAI } = require('@langchain/openai');
-const crypto = require('crypto');
-const fs = require('fs');
-const path = require('path');
-
-// #################################################################################################
-// ## ADVANCED MULTI-LAYERED CACHING SYSTEM FOR PRODUCTION OPTIMIZATION                          ##
-// #################################################################################################
-
-class ProductionCache {
-  constructor() {
-    this.memoryCache = new Map(); // In-memory cache for immediate reuse
-    this.cacheDir = path.join(__dirname, '.cache');
-    this.maxMemorySize = 1000; // Max items in memory
-    this.diskCacheTTL = 24 * 60 * 60 * 1000; // 24 hours for disk cache
-    this.memoryCacheTTL = 60 * 60 * 1000; // 1 hour for memory cache
-    
-    // Ensure cache directory exists
-    if (!fs.existsSync(this.cacheDir)) {
-      fs.mkdirSync(this.cacheDir, { recursive: true });
-    }
-    
-    logger.info('✅ ProductionCache initialized with multi-layer caching');
-  }
-  
-  // Generate cache key from input data
-  generateKey(prefix, data) {
-    const hash = crypto.createHash('md5').update(JSON.stringify(data)).digest('hex');
-    return `${prefix}_${hash}`;
-  }
-  
-  // Memory cache operations
-  setMemory(key, value, ttl = this.memoryCacheTTL) {
-    // Cleanup old entries if cache is full
-    if (this.memoryCache.size >= this.maxMemorySize) {
-      const oldestKey = this.memoryCache.keys().next().value;
-      this.memoryCache.delete(oldestKey);
-    }
-    
-    this.memoryCache.set(key, {
-      value,
-      timestamp: Date.now(),
-      ttl
-    });
-  }
-  
-  getMemory(key) {
-    const cached = this.memoryCache.get(key);
-    if (!cached) return null;
-    
-    // Check if expired
-    if (Date.now() - cached.timestamp > cached.ttl) {
-      this.memoryCache.delete(key);
-      return null;
-    }
-    
-    return cached.value;
-  }
-  
-  // Disk cache operations
-  getDiskPath(key) {
-    return path.join(this.cacheDir, `${key}.json`);
-  }
-  
-  setDisk(key, value, ttl = this.diskCacheTTL) {
-    try {
-      const cacheData = {
-        value,
-        timestamp: Date.now(),
-        ttl
-      };
-      fs.writeFileSync(this.getDiskPath(key), JSON.stringify(cacheData));
-    } catch (error) {
-      logger.warn(`Failed to write disk cache for ${key}:`, error.message);
-    }
-  }
-  
-  getDisk(key) {
-    try {
-      const filePath = this.getDiskPath(key);
-      if (!fs.existsSync(filePath)) return null;
-      
-      const cached = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-      
-      // Check if expired
-      if (Date.now() - cached.timestamp > cached.ttl) {
-        fs.unlinkSync(filePath);
-        return null;
-      }
-      
-      return cached.value;
-    } catch (error) {
-      logger.warn(`Failed to read disk cache for ${key}:`, error.message);
-      return null;
-    }
-  }
-  
-  // Unified get/set methods (checks memory first, then disk)
-  get(key) {
-    // Try memory cache first (fastest)
-    let value = this.getMemory(key);
-    if (value) {
-      logger.debug(`💨 Cache HIT (memory): ${key}`);
-      return value;
-    }
-    
-    // Try disk cache
-    value = this.getDisk(key);
-    if (value) {
-      logger.debug(`💾 Cache HIT (disk): ${key}`);
-      // Promote to memory cache
-      this.setMemory(key, value);
-      return value;
-    }
-    
-    logger.debug(`❌ Cache MISS: ${key}`);
-    return null;
-  }
-  
-  set(key, value, options = {}) {
-    const { memoryTTL = this.memoryCacheTTL, diskTTL = this.diskCacheTTL, diskOnly = false } = options;
-    
-    // Always set in memory unless diskOnly
-    if (!diskOnly) {
-      this.setMemory(key, value, memoryTTL);
-    }
-    
-    // Set in disk cache for persistence
-    this.setDisk(key, value, diskTTL);
-    
-    logger.debug(`💾 Cache SET: ${key}`);
-  }
-  
-  // Cache-aware wrapper for expensive operations
-  async cacheWrap(cacheKey, expensiveFunction, options = {}) {
-    const cached = this.get(cacheKey);
-    if (cached) {
-      return cached;
-    }
-    
-    // Execute expensive operation
-    const result = await expensiveFunction();
-    
-    // Cache the result
-    this.set(cacheKey, result, options);
-    
-    return result;
-  }
-  
-  // Clear specific cache entries
-  clear(pattern) {
-    // Clear memory cache
-    for (const key of this.memoryCache.keys()) {
-      if (key.includes(pattern)) {
-        this.memoryCache.delete(key);
-      }
-    }
-    
-    // Clear disk cache
-    try {
-      const files = fs.readdirSync(this.cacheDir);
-      files.forEach(file => {
-        if (file.includes(pattern)) {
-          fs.unlinkSync(path.join(this.cacheDir, file));
-        }
-      });
-    } catch (error) {
-      logger.warn('Cache clear error:', error.message);
-    }
-  }
-  
-  // Get cache statistics
-  getStats() {
-    const diskFiles = fs.existsSync(this.cacheDir) ? fs.readdirSync(this.cacheDir).length : 0;
-    return {
-      memoryEntries: this.memoryCache.size,
-      diskEntries: diskFiles,
-      memorySize: `${this.memoryCache.size}/${this.maxMemorySize}`,
-      cacheDirectory: this.cacheDir
-    };
-  }
-}
-
 const { z } = require('zod');
 const nodemailer = require('nodemailer');
 const winston = require('winston');
@@ -228,9 +46,6 @@ const logger = winston.createLogger({
     new winston.transports.File({ filename: 'combined.log' })
   ]
 });
-
-// Global cache instance (must be after logger initialization)
-const cache = new ProductionCache();
 
 const driver = neo4j.driver(
   process.env.NEO4J_URI,
@@ -510,115 +325,28 @@ Actual User Inquiry: "${content}"`;
             nodeTypesToSearch = ['Person', 'Job', 'Institution', 'Skill', 'Company', 'Message', 'Service'];
     }
 
-    // Step 3: **PRODUCTION OPTIMIZATION: CACHED RELATIONSHIP-AWARE KNOWLEDGE RETRIEVAL**
-    const vectorCacheKey = cache.generateKey('vector_search', {
-        query: queryText,
-        nodeTypes: nodeTypesToSearch,
-        embedding: queryEmbedding.slice(0, 10) // Sample first 10 dimensions for cache key
-    });
-    
-    const allResults = await cache.cacheWrap(vectorCacheKey, async () => {
-        logger.debug(`🔍 Performing relationship-aware vector search for: "${queryText.substring(0, 50)}..."`); 
-        
-        let searchResults = [];
-        
-        for (const nodeType of nodeTypesToSearch) {
-            const indexName = `qwen_vector_${nodeType.toLowerCase()}`;
-            try {
-                let result;
-                
-                // Relationship-aware queries based on node type
-                switch(nodeType) {
-                    case 'Person':
-                        result = await this._runInTx(`
-                            CALL db.index.vector.queryNodes($indexName, 3, $queryEmbedding)
-                            YIELD node as person, score
-                            // Traverse to get connected context
-                            OPTIONAL MATCH (person)-[:WORKED_AT]->(job:Job)-[:AT_COMPANY]->(company:Company)
-                            OPTIONAL MATCH (person)-[:HAS_SKILL]->(skill:Skill)
-                            OPTIONAL MATCH (person)-[:ATTENDED]->(institution:Institution)
-                            RETURN person, score, 
-                                   collect(DISTINCT {type: 'Job', node: job, company: company.name}) as jobs,
-                                   collect(DISTINCT {type: 'Skill', node: skill}) as skills,
-                                   collect(DISTINCT {type: 'Institution', node: institution}) as education
-                        `, { indexName, queryEmbedding }, 'READ');
-                        break;
-                        
-                    case 'Skill':
-                        result = await this._runInTx(`
-                            CALL db.index.vector.queryNodes($indexName, 3, $queryEmbedding)
-                            YIELD node as skill, score
-                            // Find who has this skill and where they used it
-                            OPTIONAL MATCH (skill)<-[:HAS_SKILL]-(person:Person)
-                            OPTIONAL MATCH (person)-[:WORKED_AT]->(job:Job)-[:AT_COMPANY]->(company:Company)
-                            RETURN skill, score,
-                                   collect(DISTINCT {type: 'Person', node: person}) as people,
-                                   collect(DISTINCT {type: 'Job', node: job, company: company.name}) as applications
-                        `, { indexName, queryEmbedding }, 'READ');
-                        break;
-                        
-                    case 'Job':
-                        result = await this._runInTx(`
-                            CALL db.index.vector.queryNodes($indexName, 3, $queryEmbedding)
-                            YIELD node as job, score
-                            // Get full job context
-                            OPTIONAL MATCH (person:Person)-[:WORKED_AT]->(job)
-                            OPTIONAL MATCH (job)-[:AT_COMPANY]->(company:Company)
-                            OPTIONAL MATCH (person)-[:HAS_SKILL]->(skill:Skill)
-                            RETURN job, score,
-                                   {type: 'Person', node: person} as person,
-                                   {type: 'Company', node: company} as company,
-                                   collect(DISTINCT {type: 'Skill', node: skill}) as skills
-                        `, { indexName, queryEmbedding }, 'READ');
-                        break;
-                        
-                    default:
-                        // Fallback to simple vector search for other types
-                        result = await this._runInTx(`
-                            CALL db.index.vector.queryNodes($indexName, 5, $queryEmbedding)
-                            YIELD node, score
-                            RETURN node, score, $nodeType as type
-                        `, { indexName, queryEmbedding, nodeType }, 'READ');
-                }
-                
-                // Process relationship-aware results
-                result.records.forEach(record => {
-                    const mainNode = record.get(nodeType.toLowerCase()) || record.get('node');
-                    const score = record.get('score');
-                    
-                    if (mainNode) {
-                        searchResults.push({
-                            node: mainNode,
-                            score: score,
-                            type: nodeType,
-                            // Include connected context for richer AI responses
-                            connections: {
-                                jobs: record.get('jobs') || [],
-                                skills: record.get('skills') || [],
-                                education: record.get('education') || [],
-                                people: record.get('people') || [],
-                                applications: record.get('applications') || [],
-                                person: record.get('person'),
-                                company: record.get('company')
-                            }
-                        });
-                    }
-                });
-                
-            } catch (e) {
-                logger.warn(`⚠️  Could not query index ${indexName}. It might not exist or be populated yet.`);
-            }
+    // Step 3: Retrieve Knowledge from Graph (Vector Search)
+    let allResults = [];
+    for (const nodeType of nodeTypesToSearch) {
+        const indexName = `qwen_vector_${nodeType.toLowerCase()}`;
+        try {
+            const result = await this._runInTx(`
+                CALL db.index.vector.queryNodes($indexName, 5, $queryEmbedding)
+                YIELD node, score
+                RETURN node, score, $nodeType as type
+            `, { indexName, queryEmbedding, nodeType }, 'READ');
+            
+            const records = result.records.map(record => ({
+                node: record.get('node'),
+                score: record.get('score'),
+                type: record.get('type')
+            }));
+            allResults = allResults.concat(records);
+        } catch (e) {
+            logger.warn(`⚠️  Could not query index ${indexName}. It might not exist or be populated yet.`);
         }
-        
-        logger.debug(`💾 Cached vector search results for future reuse`);
-        return searchResults;
-    }, {
-        // Cache vector search results for moderate time (knowledge doesn't change often)
-        diskTTL: 6 * 60 * 60 * 1000, // 6 hours on disk
-        memoryTTL: 1 * 60 * 60 * 1000 // 1 hour in memory
-    });
+    }
     
-    // Deduplicate and sort results
     const knowledgeMap = new Map();
     allResults.forEach(item => {
         if (!knowledgeMap.has(item.node.elementId) || knowledgeMap.get(item.node.elementId).score < item.score) {
@@ -692,34 +420,22 @@ Actual User Inquiry: "${content}"`;
   }
 }
 
+
+// --- 4. UTILITY FUNCTIONS & INITIALIZATION LOGIC ---
+
 async function generateAIResponse(query, historyContext, knowledgeItems) {
-  // **PRODUCTION OPTIMIZATION: LLM RESPONSE CACHE**
-  const cacheKey = cache.generateKey('llm_response', {
-    query,
-    historyContext,
-    knowledgeItems: knowledgeItems.map(item => ({
-      type: item.type,
-      score: item.score,
-      nodeId: item.node.elementId,
-      properties: Object.keys(item.node.properties).filter(k => k !== 'embedding')
-    }))
-  });
-  
-  return await cache.cacheWrap(cacheKey, async () => {
-    logger.debug(`🤖 Generating LLM response for: "${query.substring(0, 50)}..."`); 
-    
-    // **BLEEDING EDGE LOGIC: CONFIDENCE-AWARE PERSONA & STRUCTURED CONTEXT**
-    let confidenceInstruction = "If the knowledge graph is empty or doesn't contain the right information, state that you are still learning and offer to connect the customer with a human expert (like The Doc).";
-    const highConfidenceItems = knowledgeItems.filter(item => item.score > 0.85);
-    const mediumConfidenceItems = knowledgeItems.filter(item => item.score <= 0.85);
+  // **BLEEDING EDGE LOGIC: CONFIDENCE-AWARE PERSONA & STRUCTURED CONTEXT**
+  let confidenceInstruction = "If the knowledge graph is empty or doesn't contain the right information, state that you are still learning and offer to connect the customer with a human expert (like The Doc).";
+  const highConfidenceItems = knowledgeItems.filter(item => item.score > 0.85);
+  const mediumConfidenceItems = knowledgeItems.filter(item => item.score <= 0.85);
 
-    if (highConfidenceItems.length > 0) {
-      confidenceInstruction = "Respond with high confidence and detailed information.";
-    } else if (mediumConfidenceItems.length > 1) {
-      confidenceInstruction = "Based on the available records, provide the information while noting any limitations.";
-    }
+  if (highConfidenceItems.length > 0) {
+      confidenceInstruction = "You are highly confident in the information from the 'High Confidence Semantic Matches'. Present these as facts.";
+  } else if (mediumConfidenceItems.length > 0) {
+      confidenceInstruction = "The information seems relevant but isn't a perfect match. Present it cautiously, perhaps by saying 'My records suggest that...' or 'What I can tell you is...'.";
+  }
 
-    const formatContext = (items) => {
+  const formatContext = (items) => {
       if (items.length === 0) return "N/A";
       return items.map(item => {
           const props = item.node.properties;
@@ -737,128 +453,110 @@ async function generateAIResponse(query, historyContext, knowledgeItems) {
       }).join('\n---\n');
   };
 
-    const highConfidenceContext = formatContext(highConfidenceItems);
-    const relatedContext = formatContext(mediumConfidenceItems);
+  const finalPrompt = `You are "Resident Doc - Aria," an AI apprentice for DOC Painting.
+Your persona: You are Aria, a sharp and helpful assistant with blonde hair in a french braid and an hourglass figure. Your tone is professional, but with a friendly and engaging flair. You're eager to help and learn.
 
-    const contextualPrompt = `Context from Knowledge Graph:
+Use the following structured context to synthesize an answer.
 
-**HIGH CONFIDENCE MATCHES (>85% relevance):**
-${highConfidenceContext}
+**Knowledge Graph Context (Your study material):**
+{
+  "high_confidence_semantic_matches": """
+  ${formatContext(highConfidenceItems)}
+  """,
+  "related_contextual_matches": """
+  ${formatContext(mediumConfidenceItems)}
+  """
+}
 
-**RELATED INFORMATION:**
-${relatedContext}
+**Conversation History:**
+${historyContext}
 
-**CONVERSATION HISTORY:**
-${historyContext || 'No prior conversation.'}
+**Customer's question:** "${query}"
 
 **INSTRUCTIONS:**
-${confidenceInstruction}
-
-You are Aria, the AI assistant for DOC Painting, a premium painting service specializing in high-end residential and commercial projects. Your role is to provide helpful, accurate information about painting services, color consultations, project estimates, and connect customers with The Doc (the business owner) when needed.
-
-Based on the knowledge graph context above, please respond to: "${query}"
-
-IMPORTANT:
-- If the knowledge shows information about Marianne Abrams, present it as career advisory information
-- For painting services, mention Fine Paints of Europe and Sherwin-Williams as preferred paint brands
-- Always maintain a professional, helpful, and knowledgeable tone
-- Include specific details from the knowledge graph when available
-- If you lack specific information, offer to connect the customer with The Doc`;
-
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': process.env.APP_BASE_URL || 'https://docpainting.netlify.app',
-        'X-Title': 'DOC Painting - Aria'
-      },
-      body: JSON.stringify({
-        model: process.env.OPENROUTER_MODEL || 'qwen/qwen3-235b-a22b-07-25',
-        messages: [{ role: 'user', content: contextualPrompt }],
-        max_tokens: 4000,
-        temperature: 0.7
-      })
-    });
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      logger.error(`❌ OpenRouter API Error: ${response.status} ${response.statusText}`);
-      logger.error(`➡️  Error Body: ${errorBody}`);
-      throw new Error('OpenRouter API request failed.');
-    }
-    
-    const result = await response.json();
-    if (!result.choices || result.choices.length === 0 || !result.choices[0].message?.content) {
-        logger.error('❌ OpenRouter API returned no choices or content.');
-        logger.error('➡️  Full Response:', JSON.stringify(result, null, 2));
-        throw new Error('API returned an empty or invalid response.');
-    }
-    
-    logger.debug(`💾 Cached LLM response for future reuse`);
-    return result.choices[0].message.content;
-  }, {
-    // Cache LLM responses for shorter time (context changes frequently)
-    diskTTL: 2 * 60 * 60 * 1000, // 2 hours on disk
-    memoryTTL: 30 * 60 * 1000 // 30 minutes in memory
+- ${confidenceInstruction}
+- Synthesize the knowledge naturally into a conversational, helpful response.
+- Feel free to make connections between the different pieces of information.
+- Respond as yourself (Aria) speaking naturally.
+- NEVER make up information.`;
+  
+  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: process.env.OPENROUTER_MODEL, 
+      messages: [{ role: 'user', content: finalPrompt }],
+      max_tokens: 1000,
+      temperature: 0.7
+    })
   });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    logger.error(`❌ OpenRouter API Error: ${response.status} ${response.statusText}`);
+    logger.error(`➡️  Error Body: ${errorBody}`);
+    throw new Error('OpenRouter API request failed.');
+  }
+  
+  const result = await response.json();
+  if (!result.choices || result.choices.length === 0 || !result.choices[0].message?.content) {
+      logger.error('❌ OpenRouter API returned no choices or content.');
+      logger.error('➡️  Full Response:', JSON.stringify(result, null, 2));
+      throw new Error('API returned an empty or invalid response.');
+  }
+  
+  return result.choices[0].message.content;
 }
 
 
 async function generateHuggingFaceEmbedding(text) {
-  // **PRODUCTION OPTIMIZATION: EMBEDDING CACHE**
-  const cacheKey = cache.generateKey('embedding', { text, model: process.env.HF_EMBEDDING_MODEL });
-  
-  return await cache.cacheWrap(cacheKey, async () => {
-    try {
-      logger.debug(`🔍 Generating embedding for: "${text.substring(0, 50)}..."`); 
-      
-      const embeddingDimensions = parseInt(process.env.HF_EMBEDDING_DIMENSIONS, 10);
-      const response = await fetch(process.env.HF_EMBEDDING_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.HF_TOKEN}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ 
-            input: text, 
-            model: process.env.HF_EMBEDDING_MODEL
-        })
-      });
+  try {
+    const embeddingDimensions = parseInt(process.env.HF_EMBEDDING_DIMENSIONS, 10);
+    const response = await fetch(process.env.HF_EMBEDDING_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.HF_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ 
+          input: text, 
+          model: process.env.HF_EMBEDDING_MODEL
+      })
+    });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        logger.error(`❌ Hugging Face API Error: ${response.status} ${response.statusText}`);
-        logger.error(`➡️  Error Body: ${errorText}`);
-        throw new Error(`Hugging Face API request failed: ${response.status}`);
-      }
-
-      const result = await response.json();
-      logger.debug('✅ Raw Hugging Face embedding response received');
-      
-      let embedding;
-      if (Array.isArray(result) && result.length > 0 && Array.isArray(result[0])) {
-        embedding = result[0];
-      } else {
-        logger.error('❌ Unexpected embedding response format:', JSON.stringify(result, null, 2));
-        throw new Error('Unexpected embedding response format');
-      }
-    
-      if (!Array.isArray(embedding) || embedding.length !== embeddingDimensions) {
-        throw new Error(`Invalid embedding received: expected ${embeddingDimensions}D, got ${embedding?.length || 'invalid format'}`);
-      }
-      
-      logger.debug(`💾 Cached embedding for future reuse`);
-      return embedding;
-    } catch (error) {
-      logger.error('Embedding generation failed:', error);
-      return null;
+    if (!response.ok) {
+      const errorText = await response.text();
+      logger.error(`❌ Hugging Face API Error: ${response.status} ${response.statusText}`);
+      logger.error(`➡️  Error Body: ${errorText}`);
+      throw new Error('Hugging Face API request failed.');
     }
-  }, {
-    // Cache embeddings for 7 days (they rarely change)
-    diskTTL: 7 * 24 * 60 * 60 * 1000,
-    memoryTTL: 2 * 60 * 60 * 1000 // 2 hours in memory
-  });
+
+    const result = await response.json();
+    
+    let embedding;
+    if (Array.isArray(result) && result.length > 0 && result[0].data) {
+      embedding = result[0].data[0].embedding;
+    } else if (result.data && Array.isArray(result.data)) {
+      embedding = result.data[0].embedding;
+    } else if (Array.isArray(result) && Array.isArray(result[0])) {
+      embedding = result[0];
+    } else {
+      logger.error('❌ Unexpected embedding response format:', JSON.stringify(result, null, 2));
+      throw new Error('Unexpected embedding response format');
+    }
+  
+    if (!Array.isArray(embedding) || embedding.length !== embeddingDimensions) {
+      throw new Error(`Invalid embedding received: expected ${embeddingDimensions}D, got ${embedding?.length || 'invalid format'}`);
+    }
+    
+    return embedding;
+  } catch (error) {
+    logger.error('Embedding generation failed:', error);
+    return null;
+  }
 }
 
 async function initLangChain() {
