@@ -15,13 +15,13 @@ async function generateQwenEmbedding(text) {
   // This function remains the same. It calls the HF Router for embeddings.
   try {
     console.log(`🔄 Embedding: "${text.substring(0, 50)}..."`);
-    const response = await fetch('https://router.huggingface.co/nebius/v1/embeddings', {
+    const response = await fetch(process.env.HF_EMBEDDING_ENDPOINT, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.HF_TOKEN}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ input: text, model: "Qwen/Qwen3-Embedding-8B" })
+      body: JSON.stringify({ input: text, model: process.env.HF_EMBEDDING_MODEL })
     });
     if (!response.ok) throw new Error(`HF Router Error: ${await response.text()}`);
     const result = await response.json();

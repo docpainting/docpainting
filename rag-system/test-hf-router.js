@@ -46,8 +46,8 @@ async function testEmbedding() {
             console.log(`\n📝 Testing: "${text}"`);
             
             const response = await query({ 
-                inputs: text,
-                model: "BAAI/bge-large-en-v1.5" // specify the model
+                input: text,
+                model: process.env.HF_EMBEDDING_MODEL // Use .env model
             });
             
             console.log('Response structure:', Object.keys(response));
